@@ -1,3 +1,5 @@
+// components/kurator_create_edit/KuratorGallery.jsx
+"use client";
 import Image from "next/image";
 import { useState, useActionState, startTransition } from "react";
 
@@ -5,25 +7,39 @@ import { filterData } from "../global/filter/actions";
 import Filter from "../global/filter/Filter";
 
 import Placeholder from "../../app/assets/img/placeholder.png";
+import CustomButton from "@/components/global/CustomButton"; // Antager du har denne knap komponent
+
+const IMAGES_PER_PAGE = 20; // Definer hvor mange billeder per side
 
 const Gallery = ({
-  smkdata,
-  locationSelected,
+  smkImages,
   categories,
-  children,
-  // til at registrere max images for valgte lokation
+  locationSelected,
   maxImages,
   currentlySelectedArtworks,
-  handleImageSelect = { handleImageSelect },
-  setSelectedImages = { setSelectedImages },
-  selectedImages = { selectedImages },
+  setSelectedImages,
+  selectedImages,
 }) => {
+  const [currentPage, setCurrentPage] = useState(1); // Tilføj state for den aktuelle side
+
   const [state, action, isPending] = useActionState(filterData, {
     active: [],
-    data: [],
+    data: [], // Starter med tom data, så "Vælg filter" vises
   });
 
+  // Kalder filterData med en tom active array ved første render, hvis der er smkImages
+  // Dette sikrer, at alle billeder vises som standard, hvis intet filter vælges
+  // Dog, for at vise "Vælg noget i filteret...", initialiseres data som tom.
+  // Hvis du vil vise alle billeder som standard FØR filter, fjern denne `useEffect`
+  // og initialiser `useActionState` med `smkImages` som `data`.
+  // React.useEffect(() => {
+  //   if (smkImages && smkImages.length > 0 && state.active.length === 0) {
+  //     action([]); // Udløser handlingen uden filtre for at indlæse alle billeder
+  //   }
+  // }, [smkImages, action]);
+
   function handleFilter(value, category) {
+    setCurrentPage(1); // Nulstil side til 1, når et filter ændres
     const replaceFilter = state?.active?.filter(
       (item) => !item.includes(category)
     );
@@ -32,8 +48,19 @@ const Gallery = ({
         ? replaceFilter
         : [...replaceFilter, `[${category}:${value}]`];
 
-    startTransition(action.bind(state, data));
+    startTransition(() => {
+      action(data);
+    });
   }
+
+  // Logik for sideinddeling
+  const totalPages = Math.ceil(state.data.length / IMAGES_PER_PAGE);
+  const startIndex = (currentPage - 1) * IMAGES_PER_PAGE;
+  const endIndex = startIndex + IMAGES_PER_PAGE;
+  const currentImages = state.data.slice(startIndex, endIndex);
+
+  // Bestem om der er aktive filtre
+  const hasActiveFilters = state.active && state.active.length > 0;
 
   return (
     <section className="border p-4 rounded-md">
@@ -47,82 +74,103 @@ const Gallery = ({
         <Filter data={categories} fn={handleFilter} />
 
         <ul className="-col-end-1 sm:col-start-2 grid grid-cols-subgrid gap-4">
-          {locationSelected ? (
-            smkdata.smk.map((img) => {
-              return (
-                <GalleryCard
-                  key={img.id}
-                  isDisabled={
-                    !selectedImages && selectedImages.length >= maxImages
-                  }
-                />
-              );
-            }) && isPending ? (
-              <p>Indlæser SMK billeder...</p>
-            ) : state?.data?.length === 0 ? (
-              <p className="text-red-500">Ingen billeder fundet.</p>
-            ) : (
-              state?.data?.map((item, id) => (
-                <GalleryCard
-                  key={id}
-                  {...item}
-                  isDisabled={selectedImages.length >= maxImages}
-                  maxImages={maxImages}
-                  currentlySelectedArtworks={currentlySelectedArtworks}
-                  selectedImages={selectedImages}
-                  setSelectedImages={setSelectedImages}
-                />
-              ))
-            )
+          {isPending ? (
+            <p className="col-span-full">Indlæser SMK billeder...</p>
+          ) : !locationSelected ? (
+            <p className="text-red-500 col-span-full">
+              Vælg venligst en lokation for at se billeder.
+            </p>
+          ) : !hasActiveFilters ? ( // Viser denne besked, hvis ingen filtre er valgt
+            <p className="text-blue-600 col-span-full">
+              Vælg noget i filteret for at billederne bliver vist.
+            </p>
+          ) : currentImages.length === 0 ? ( // Viser denne besked hvis filtre er valgt, men intet match
+            <p className="text-red-500 col-span-full">
+              Ingen billeder fundet med de valgte filtre.
+            </p>
           ) : (
-            "Ingen Lokation eller Filter"
+            currentImages.map((item) => (
+              <GalleryCard
+                key={item.object_number}
+                {...item}
+                isDisabled={
+                  selectedImages.length >= maxImages &&
+                  !selectedImages.includes(item.object_number)
+                }
+                selectedImages={selectedImages}
+                setSelectedImages={setSelectedImages}
+              />
+            ))
           )}
         </ul>
       </article>
-      {children}
+
+      {/* Pagination Controls */}
+      {hasActiveFilters && state.data.length > 0 && totalPages > 1 && (
+        <div className="flex justify-center items-center mt-6 gap-2">
+          <CustomButton
+            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+            disabled={currentPage === 1 || isPending}
+            className="px-4 py-2"
+          >
+            Forrige
+          </CustomButton>
+          <span className="text-black">
+            Side {currentPage} af {totalPages}
+          </span>
+          <CustomButton
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+            }
+            disabled={currentPage === totalPages || isPending}
+            className="px-4 py-2"
+          >
+            Næste
+          </CustomButton>
+        </div>
+      )}
     </section>
   );
 };
 
 export default Gallery;
 
-// ----------------------------- Gallery Card --------------------------------------------//
-
+// GalleryCard forbliver uændret
 function GalleryCard({
   object_number,
   image_thumbnail,
   image_native,
   image_width,
   image_height,
+  title,
   isDisabled,
-  maxImages,
-  currentlySelectedArtworks,
-  handleImageSelect,
   selectedImages,
   setSelectedImages,
 }) {
-  const [isSelected, setIsSelected] = useState(false);
+  const isSelected = selectedImages.includes(object_number);
+
+  const handleClick = () => {
+    if (isSelected) {
+      setSelectedImages(selectedImages.filter((id) => id !== object_number));
+    } else {
+      if (!isDisabled) {
+        setSelectedImages([...selectedImages, object_number]);
+      }
+    }
+  };
 
   return (
     <li
-      onClick={() => {
-        setIsSelected(isSelected === object_number ? undefined : object_number);
-        setSelectedImages(
-          selectedImages.includes(object_number)
-            ? selectedImages.filter((item) => item !== object_number)
-            : selectedImages.concat(object_number)
-        );
-        console.log("selectedImages", selectedImages);
-      }}
+      onClick={handleClick}
       className={`${
         isSelected
           ? "ring-4 ring-[#A89C9E] cursor-pointer"
           : isDisabled
-          ? "opacity-50 cursor-not-allowed"
-          : "border-gray-300 cursor-pointer"
+            ? "opacity-50 cursor-not-allowed"
+            : "border-gray-300 cursor-pointer"
       }
       relative border-2 aspect-square
-                    `}
+      `}
     >
       {image_thumbnail === "https://api.smk.dk/api/v1/thumbnail/PD" ? (
         <div className="bg-btn-bg/50 text-white grid place-content-center p-2 w-full aspect-square">
