@@ -3,7 +3,7 @@
 export async function getEvent() {
   const dataEvents = await fetch(
     "https://ema-async-exhibit-server.onrender.com/events?limit=*"
-  ); //skift url med eksterne server side når det er deployet
+  );
   const dataevent = await dataEvents.json();
   return dataevent;
 }
@@ -11,7 +11,7 @@ export async function getEvent() {
 export async function getEventId(id) {
   const dataEventsids = await fetch(
     "https://ema-async-exhibit-server.onrender.com/events" + `/${id}`
-  ); //skift url med eksterne server side når det er deployet
+  );
   const dataeventid = await dataEventsids.json();
   return dataeventid;
 }
@@ -19,7 +19,7 @@ export async function getEventId(id) {
 export async function getEventDates() {
   const EventsDates = await fetch(
     "https://ema-async-exhibit-server.onrender.com/dates"
-  ); //skift url med eksterne server side når det er deployet
+  );
   const eventsdates = await EventsDates.json();
   return eventsdates;
 }
@@ -27,7 +27,7 @@ export async function getEventDates() {
 export async function getEventLocations() {
   const EventsLocations = await fetch(
     "https://ema-async-exhibit-server.onrender.com/locations"
-  ); //skift url med eksterne server side når det er deployet
+  );
   const eventslocations = await EventsLocations.json();
   return eventslocations;
 }
@@ -59,6 +59,18 @@ export async function updateEvent(id, eventData) {
   );
 
   return response.json();
+}
+
+export async function deleteEvent(id) {
+  const response = await fetch(
+    `https://ema-async-exhibit-server.onrender.com/events/${id}`,
+    {
+      method: "DELETE",
+    }
+  );
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
 }
 
 // SMK ENDPOINTS
