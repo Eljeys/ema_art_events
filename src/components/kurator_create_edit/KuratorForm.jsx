@@ -1,256 +1,157 @@
-// src/components/kurator_create_edit/KuratorForm.jsx
 "use client";
-import React, { useState, useEffect, useMemo } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { format, parseISO, isValid } from "date-fns";
-import { da } from "date-fns/locale";
-import { useRouter } from "next/navigation";
 
-import { createEvent, updateEvent } from "@/lib/api"; // getSMKImg SKAL FJERNES HERFRA
-import SmkImageFetcher from "./SmkImageFetcher"; // <-- NY IMPORT!
+import { useState } from "react";
+import { useForm, SubmitHandler } from "react-hook-form";
+import Image from "next/image";
+import { useRouter } from "next/navigation"; // Korrekt import for useRouter
 
-import CustomButton from "@/components/global/CustomButton";
-import Step from "./Step";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { DatePicker } from "@/components/ui/date-picker";
-// import KuratorGallery from "@/components/kurator_create_edit/KuratorGallery"; // Fjern denne import, da SmkImageFetcher håndterer den
-// import SelectedImagesPreview from "./SelectedImagesPreview"; // Fjern denne import, da SmkImageFetcher håndterer den
-import Placeholder from "../../app/assets/img/placeholder.png";
+// --------------------------- Components -------------------------------------//
+import CustomButton from "../global/CustomButton";
+import Placeholder from "../../app/assets/img/placeholder.png"; // Tjek lige stien til placeholder, den er her relativt til app-roden
+import { createEvent, updateEvent } from "@/lib/api";
 
-const formSchema = z.object({
-  title: z.string().min(2, {
-    message: "Titel skal være mindst 2 tegn.",
-  }),
-  locationId: z.string().min(1, {
-    message: "Lokation er påkrævet.",
-  }),
-  date: z.date({
-    required_error: "Dato er påkrævet.",
-  }),
-  description: z.string().optional(),
-  artworkIds: z.array(z.string()).optional(),
-});
+// Fjern useSearchParams, da den ikke bruges i KuratorForm
+// import { useSearchParams } from "next/navigation";
 
-export function Kuratorform({
-  eventDates,
-  eventLocations,
-  eventData,
-  categories,
-  maxImages,
-}) {
-  const router = useRouter();
+// ----------------------------- KuratorForm ---------------------------------- //
+const KuratorForm = ({ images, locations, prevData }) => {
+  // Debugging console.log kan fjernes når koden virker
+  // console.log("KuratorForm: ", "prevData", prevData, "prevData.artworkIds", prevData?.artworkIds);
 
-  // ***** FJERNEDE STATE OG USEEFFECT FOR SMK BILLEDER HERFRA *****
-  // const [smkImages, setSmkImages] = useState([]);
-  // const [isLoadingImages, setIsLoadingImages] = useState(true);
-  // const [imageError, setImageError] = useState(null);
-  // Fjern den useEffect, der kalder fetchSmkImages()
-  // *************************************************************
-
-  const [selectedImages, setSelectedImages] = useState(
-    eventData?.artworkIds || []
-  );
-
-  // Denne useEffect opdaterer selectedImages, når eventData ændrer sig (ved redigering)
-  useEffect(() => {
-    if (eventData) {
-      setSelectedImages(eventData.artworkIds || []);
-      console.log(
-        "DEBUG_KuratorForm: useEffect updated selectedImages from eventData:",
-        eventData.artworkIds
-      );
-    } else {
-      setSelectedImages([]);
-    }
-  }, [eventData]);
-
-  const form = useForm({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      title: eventData?.title || "",
-      locationId: eventData?.location?.id || "",
-      date: eventData?.date ? parseISO(eventData.date) : undefined,
-      description: eventData?.description || "",
-      artworkIds: eventData?.artworkIds || [],
-    },
+  const { register, handleSubmit } = useForm({
+    defaultValues: prevData || {},
   });
 
-  // Denne useEffect synkroniserer selectedImages state med react-hook-form's interne state
-  useEffect(() => {
-    form.setValue("artworkIds", selectedImages, { shouldValidate: true });
-    console.log(
-      "DEBUG_KuratorForm: Form's artworkIds updated via setValue:",
-      selectedImages
-    );
-  }, [selectedImages, form]);
+  // Initialiser selectedImages med eksisterende artworkIds hvis prevData findes
+  // Ellers start med en tom array.
+  const [selectedImages, setSelectedImages] = useState(
+    prevData?.artworkIds || []
+  );
 
-  const allowedDates = useMemo(() => {
-    if (!eventDates) return new Set();
-    return new Set(
-      eventDates
-        .map((dateStr) => parseISO(dateStr))
-        .filter((date) => isValid(date))
-        .map((date) => date.toDateString())
-    );
-  }, [eventDates]);
+  const router = useRouter(); // Initialiser useRouter
 
-  const filterDatesForPicker = (date) => {
-    return !allowedDates.has(date.toDateString());
-  };
-
-  const handleFormSubmit = async (data) => {
-    const formattedData = {
-      ...data,
-      date: format(data.date, "yyyy-MM-dd"),
+  const onSubmit = async (data) => {
+    // Kombiner indholdet for både create og update for at undgå gentagelse
+    const payload = {
+      title: data.title,
+      date: data.date,
+      locationId: data.locationId,
+      description: data.description,
       artworkIds: selectedImages,
     };
 
-    console.log("DEBUG_SUBMIT: Data being sent to API:", formattedData);
-
     try {
-      if (eventData) {
-        await updateEvent(eventData.id, formattedData);
-        alert("Event opdateret succesfuldt!");
+      if (prevData && prevData.id) {
+        // Hvis prevData eksisterer, er det en opdatering (PATCH)
+        console.log(
+          "Forsøger at opdatere event (PATCH):",
+          payload,
+          "ID:",
+          prevData.id
+        );
+        await updateEvent(prevData.id, payload);
+        alert("Eventet er opdateret succesfuldt!");
       } else {
-        await createEvent(formattedData);
-        alert("Event oprettet succesfuldt!");
+        // Ellers er det en ny oprettelse (POST)
+        console.log("Forsøger at oprette event (POST):", payload);
+        await createEvent(payload);
+        alert("Eventet er oprettet succesfuldt!");
       }
-      router.push("/dashboard");
-      router.refresh();
+
+      // Efter succesfuld oprettelse/opdatering, redirect til dashboard
+      router.push("/dashboard"); // Juster stien om nødvendigt
     } catch (error) {
-      console.error("DEBUG_SUBMIT: Fejl ved håndtering af event:", error);
-      alert("Der skete en fejl under håndtering af eventet.");
+      console.error("Fejl ved submit af event:", error);
+      alert(
+        "Der opstod en fejl ved oprettelse/opdatering af event. Tjek konsollen for detaljer."
+      );
     }
   };
 
-  const locationSelected = !!form.watch("locationId");
-
-  // selectedImageObjects useMemo er fjernet herfra, da SelectedImagesPreview
-  // nu selv håndterer filtreringen baseret på de fulde smkImages.
-
   return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(handleFormSubmit)}
-        className="space-y-6 p-4"
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="flex flex-col gap-(--space-2rem)"
+    >
+      <input
+        className="border-2 border-amber-700"
+        defaultValue={"Title"} // Overvej at fjerne defaultValue her, hvis du bruger prevData
+        placeholder="Title" // Bedre for tomme felter
+        {...register("title")}
+      ></input>
+      <input
+        className="border-2 border-amber-700"
+        defaultValue={"Dato"} // Overvej at fjerne defaultValue her
+        placeholder="Dato"
+        {...register("date")}
+      ></input>
+      <select
+        className="border-2 border-amber-700"
+        defaultValue={"Lokation"} // Overvej at fjerne defaultValue her
+        {...register("locationId")}
       >
-        <Step number="1" text="Dato og tid for event" />
+        {/* Tilføj en tom option, hvis du vil have "Vælg lokation" som standard */}
+        {/* <option value="">Vælg lokation</option> */}
+        {locations.map((location) => {
+          return (
+            <option key={location.id} value={location.id}>
+              {location.name}(Max billeder: {location.maxArtWorks})
+            </option>
+          );
+        })}
+      </select>
+      <textarea
+        className="border-2 border-amber-700"
+        defaultValue={"Beskrivelse"} // Overvej at fjerne defaultValue her
+        placeholder="Beskrivelse"
+        {...register("description")}
+      ></textarea>
 
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Titel på event</FormLabel>
-              <FormControl>
-                <Input placeholder="Huttelihu" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      {/* GALLERI SECTION */}
+      <ul className="grid grid-cols-3 gap-x-(--space-2rem)">
+        {/* Filter element - dette er den statiske tekst fra din venindes kode */}
+        <li className="col-3 row-span-2">Filter her</li>
 
-        <FormField
-          control={form.control}
-          name="locationId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Lokation</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Vælg en lokation" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {eventLocations && eventLocations.length > 0 ? (
-                    eventLocations.map((location) => (
-                      <SelectItem key={location.id} value={location.id}>
-                        {location.name}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem disabled value="">
-                      Ingen lokationer fundet.
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* Billedvisning */}
+        <li className="col-start-1 col-end-3 grid grid-cols-4 gap-(--space-1rem)">
+          {images.map((img) => {
+            // Bestem om billedet er valgt i den aktuelle state
+            const isSelected = selectedImages.includes(img.object_number);
 
-        <FormField
-          control={form.control}
-          name="date"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Dato</FormLabel>
-              <FormControl>
-                <DatePicker
-                  field={field}
-                  locale={da}
-                  filter={filterDatesForPicker}
-                  buttonClassName="w-fit"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Beskrivelse</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Indtast beskrivelse her..." {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <Step number="2" text="Vælg billeder til eventet" />
-        <p className="text-sm text-gray-500 mb-4">
-          Vælg billeder fra SMK's samling. Du kan vælge op til{" "}
-          <span className="font-bold">{maxImages}</span> billeder.
-        </p>
-
-        {/* Her kalder vi vores nye Server Component */}
-        <SmkImageFetcher
-          categories={categories}
-          maxImages={maxImages}
-          locationSelected={locationSelected}
-          selectedImages={selectedImages} // Send selectedImages state (IDs) ned
-          setSelectedImages={setSelectedImages} // Send setSelectedImages funktion ned
-        />
-
-        <CustomButton type="submit">
-          {eventData ? "Gem Ændringer" : "Opret Event"}
-        </CustomButton>
-      </form>
-    </Form>
+            return (
+              <Image
+                onClick={() => {
+                  // Her håndteres tilføjelse/fjernelse af billed-ID'er
+                  setSelectedImages((prevSelectedImages) => {
+                    if (prevSelectedImages.includes(img.object_number)) {
+                      // Fjern hvis allerede valgt
+                      return prevSelectedImages.filter(
+                        (item) => item !== img.object_number
+                      );
+                    } else {
+                      // Tilføj hvis ikke valgt
+                      // Du kan her tilføje logik for maxArtWorks, hvis nødvendigt
+                      // F.eks. if (prevSelectedImages.length < maxArtWorks) { return ... }
+                      return [...prevSelectedImages, img.object_number];
+                    }
+                  });
+                }}
+                key={img.object_number}
+                src={img.image_thumbnail || img.image_native || Placeholder}
+                width={img.image_width || 400}
+                height={img.image_height || 400}
+                alt={img.title || "SMK billede"}
+                className={`object-cover w-full h-full col-span-1 row-span-1 cursor-pointer
+                  ${isSelected ? "border-4 border-green-500 order-first" : "opacity-50"}
+                `}
+              />
+            );
+          })}
+        </li>
+      </ul>
+      <CustomButton type="Submit" text="Submit"></CustomButton>
+    </form>
   );
-}
+};
+
+export default KuratorForm;
