@@ -1,95 +1,165 @@
-// components/kurator_create_edit/KuratorGallery.jsx
+// src/components/kurator_create_edit/KuratorGallery.jsx
 "use client";
 import Image from "next/image";
-import { useState, useActionState, startTransition } from "react";
-
-import { filterData } from "../global/filter/actions";
-import Filter from "../global/filter/Filter";
+import { useState, useActionState, startTransition, useEffect } from "react"; // <-- Import useEffect
+import { getSMKImagesPaginated } from "@/lib/api"; // <-- Import den paginerede funktion
+import Filter from "../global/filter/Filter"; // Antager Filter er i denne sti
 
 import Placeholder from "../../app/assets/img/placeholder.png";
-import CustomButton from "@/components/global/CustomButton"; // Antager du har denne knap komponent
+import CustomButton from "@/components/global/CustomButton";
 
-const IMAGES_PER_PAGE = 20; // Definer hvor mange billeder per side
+const IMAGES_PER_PAGE = 20;
 
 const Gallery = ({
-  smkImages,
+  initialSmkImages, // De første billeder fra SmkImageFetcher
+  totalSmkImages, // Det totale antal billeder fra API'en
   categories,
   locationSelected,
   maxImages,
-  currentlySelectedArtworks,
   setSelectedImages,
   selectedImages,
 }) => {
-  const [currentPage, setCurrentPage] = useState(1); // Tilføj state for den aktuelle side
+  const [smkImages, setSmkImages] = useState(initialSmkImages); // State til at holde de billeder, der vises
+  const [currentPage, setCurrentPage] = useState(1);
+  const [currentTotal, setCurrentTotal] = useState(totalSmkImages); // Holder styr på totalen, kan ændres ved filtrering
+  const [isLoading, setIsLoading] = useState(false); // Ny loading state for klient-side hentning
+  const [galleryError, setGalleryError] = useState(null); // Ny fejl-state for klient-side hentning
+  const [activeFilters, setActiveFilters] = useState([]); // Nye state til aktive filtre
+  const [searchQuery, setSearchQuery] = useState(""); // Ny state til søgeforespørgsel (hvis du tilføjer søgning)
 
-  const [state, action, isPending] = useActionState(filterData, {
-    active: [],
-    data: [], // Starter med tom data, så "Vælg filter" vises
-  });
+  // UseEffect til at hente billeder, når side, filtre eller søgning ændres
+  useEffect(() => {
+    async function fetchGalleryImages() {
+      if (!locationSelected) return; // Vent til lokation er valgt
 
-  // Kalder filterData med en tom active array ved første render, hvis der er smkImages
-  // Dette sikrer, at alle billeder vises som standard, hvis intet filter vælges
-  // Dog, for at vise "Vælg noget i filteret...", initialiseres data som tom.
-  // Hvis du vil vise alle billeder som standard FØR filter, fjern denne `useEffect`
-  // og initialiser `useActionState` med `smkImages` som `data`.
-  // React.useEffect(() => {
-  //   if (smkImages && smkImages.length > 0 && state.active.length === 0) {
-  //     action([]); // Udløser handlingen uden filtre for at indlæse alle billeder
-  //   }
-  // }, [smkImages, action]);
+      setIsLoading(true);
+      setGalleryError(null); // Ryd tidligere fejl
 
+      try {
+        const offset = (currentPage - 1) * IMAGES_PER_PAGE;
+        const limit = IMAGES_PER_PAGE;
+
+        console.log(
+          `DEBUG_Gallery: Fetching images with offset: ${offset}, limit: ${limit}, filters: ${activeFilters}`
+        );
+        const result = await getSMKImagesPaginated(
+          offset,
+          limit,
+          searchQuery,
+          activeFilters
+        );
+
+        setSmkImages(result.items);
+        setCurrentTotal(result.totalFound); // Opdater det totale antal fundne billeder baseret på filtre
+
+        if (
+          result.items.length === 0 &&
+          result.totalFound > 0 &&
+          currentPage === 1
+        ) {
+          setGalleryError(
+            "Ingen billeder fundet for de valgte filtre på første side."
+          );
+        } else if (result.items.length === 0 && result.totalFound === 0) {
+          setGalleryError("Ingen billeder fundet med de valgte filtre.");
+        }
+      } catch (error) {
+        console.error("Fejl ved hentning af galleribilleder:", error);
+        setGalleryError("Fejl ved indlæsning af billeder.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchGalleryImages();
+  }, [currentPage, activeFilters, searchQuery, locationSelected]); // Afhængigheder
+
+  // Funktion til at håndtere filterændringer
   function handleFilter(value, category) {
     setCurrentPage(1); // Nulstil side til 1, når et filter ændres
-    const replaceFilter = state?.active?.filter(
-      (item) => !item.includes(category)
-    );
-    const data =
-      value === "all"
-        ? replaceFilter
-        : [...replaceFilter, `[${category}:${value}]`];
+    setSearchQuery(""); // Ryd søgning ved filtrering (eller implementer kombineret logik)
 
-    startTransition(() => {
-      action(data);
-    });
+    // Logik for at opdatere activeFilters (kopieret fra din gamle kode)
+    // Sørg for at dette matcher det format, getSMKImagesPaginated forventer i `filters` array'en.
+    // getSMKImagesPaginated forventer "[category:value]".
+    const updatedFilters = activeFilters.filter(
+      (item) => !item.includes(category) // Fjerner eksisterende filter for denne kategori
+    );
+
+    const newFilters =
+      value === "all"
+        ? updatedFilters
+        : [...updatedFilters, `[${category}:${value}]`];
+
+    setActiveFilters(newFilters); // Sæt den nye liste af aktive filtre
   }
 
-  // Logik for sideinddeling
-  const totalPages = Math.ceil(state.data.length / IMAGES_PER_PAGE);
-  const startIndex = (currentPage - 1) * IMAGES_PER_PAGE;
-  const endIndex = startIndex + IMAGES_PER_PAGE;
-  const currentImages = state.data.slice(startIndex, endIndex);
+  // Logik for søgning (tilføj Input-felt for søgning i din JSX)
+  function handleSearch(query) {
+    setSearchQuery(query);
+    setCurrentPage(1);
+    setActiveFilters([]); // Ryd filtre ved søgning (eller implementer kombineret logik)
+  }
 
-  // Bestem om der er aktive filtre
-  const hasActiveFilters = state.active && state.active.length > 0;
+  // Pagination Controls
+  const totalPages = Math.ceil(currentTotal / IMAGES_PER_PAGE);
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+  };
+
+  const handlePrevPage = () => {
+    setCurrentPage((prev) => Math.max(1, prev - 1));
+  };
 
   return (
     <section className="border p-4 rounded-md">
       <p className="text-black my-4">
         {(maxImages === 0 && "Denne lokation har ingen billedkapacitet.") ||
-          (currentlySelectedArtworks.length === 0 &&
+          (selectedImages.length === 0 &&
             maxImages > 0 &&
             `Ingen billeder valgt endnu. Vælg op til ${maxImages} billeder.`)}
+        {selectedImages.length > 0 &&
+          maxImages > 0 &&
+          `Du har valgt ${selectedImages.length} ud af ${maxImages} billeder.`}
       </p>
       <article className="grid sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {/* Filter-komponent */}
         <Filter data={categories} fn={handleFilter} />
 
+        {/* Tilføj eventuelt et søgefelt her */}
+        {/*
+        <div className="col-span-full">
+            <input
+                type="text"
+                placeholder="Søg billeder..."
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="p-2 border rounded w-full"
+            />
+        </div>
+        */}
+
         <ul className="-col-end-1 sm:col-start-2 grid grid-cols-subgrid gap-4">
-          {isPending ? (
+          {isLoading ? (
             <p className="col-span-full">Indlæser SMK billeder...</p>
           ) : !locationSelected ? (
             <p className="text-red-500 col-span-full">
               Vælg venligst en lokation for at se billeder.
             </p>
-          ) : !hasActiveFilters ? ( // Viser denne besked, hvis ingen filtre er valgt
-            <p className="text-blue-600 col-span-full">
-              Vælg noget i filteret for at billederne bliver vist.
-            </p>
-          ) : currentImages.length === 0 ? ( // Viser denne besked hvis filtre er valgt, men intet match
+          ) : galleryError ? (
+            <p className="text-red-500 col-span-full">{galleryError}</p>
+          ) : smkImages.length === 0 &&
+            (activeFilters.length > 0 || searchQuery) ? (
             <p className="text-red-500 col-span-full">
-              Ingen billeder fundet med de valgte filtre.
+              Ingen billeder fundet med de valgte filtre/søgning.
+            </p>
+          ) : smkImages.length === 0 ? (
+            <p className="text-blue-600 col-span-full">
+              Ingen billeder at vise.
             </p>
           ) : (
-            currentImages.map((item) => (
+            smkImages.map((item) => (
               <GalleryCard
                 key={item.object_number}
                 {...item}
@@ -106,29 +176,28 @@ const Gallery = ({
       </article>
 
       {/* Pagination Controls */}
-      {hasActiveFilters && state.data.length > 0 && totalPages > 1 && (
-        <div className="flex justify-center items-center mt-6 gap-2">
-          <CustomButton
-            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-            disabled={currentPage === 1 || isPending}
-            className="px-4 py-2"
-          >
-            Forrige
-          </CustomButton>
-          <span className="text-black">
-            Side {currentPage} af {totalPages}
-          </span>
-          <CustomButton
-            onClick={() =>
-              setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-            }
-            disabled={currentPage === totalPages || isPending}
-            className="px-4 py-2"
-          >
-            Næste
-          </CustomButton>
-        </div>
-      )}
+      {currentTotal > IMAGES_PER_PAGE &&
+        totalPages > 1 && ( // Vis kun paginering, hvis der er mere end 1 side
+          <div className="flex justify-center items-center mt-6 gap-2">
+            <CustomButton
+              onClick={handlePrevPage}
+              disabled={currentPage === 1 || isLoading}
+              className="px-4 py-2"
+            >
+              Forrige
+            </CustomButton>
+            <span className="text-black">
+              Side {currentPage} af {totalPages}
+            </span>
+            <CustomButton
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages || isLoading}
+              className="px-4 py-2"
+            >
+              Næste
+            </CustomButton>
+          </div>
+        )}
     </section>
   );
 };
@@ -150,11 +219,16 @@ function GalleryCard({
   const isSelected = selectedImages.includes(object_number);
 
   const handleClick = () => {
+    console.log("DEBUG_GalleryCard: Clicked on:", object_number);
     if (isSelected) {
+      console.log("DEBUG_GalleryCard: Deselecting", object_number);
       setSelectedImages(selectedImages.filter((id) => id !== object_number));
     } else {
       if (!isDisabled) {
+        console.log("DEBUG_GalleryCard: Selecting", object_number);
         setSelectedImages([...selectedImages, object_number]);
+      } else {
+        console.log("DEBUG_GalleryCard: Cannot select, disabled.");
       }
     }
   };
@@ -174,7 +248,7 @@ function GalleryCard({
     >
       {image_thumbnail === "https://api.smk.dk/api/v1/thumbnail/PD" ? (
         <div className="bg-btn-bg/50 text-white grid place-content-center p-2 w-full aspect-square">
-          Image not found.
+          Billede ikke fundet.
         </div>
       ) : (
         <Image

@@ -1,5 +1,6 @@
+// src/components/kurator_create_edit/KuratorForm.jsx
 "use client";
-import React, { useState } from "react"; // Importer useState
+import React, { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -7,7 +8,8 @@ import { format, parseISO, isValid } from "date-fns";
 import { da } from "date-fns/locale";
 import { useRouter } from "next/navigation";
 
-import { createEvent, updateEvent } from "@/lib/api";
+import { createEvent, updateEvent } from "@/lib/api"; // getSMKImg SKAL FJERNES HERFRA
+import SmkImageFetcher from "./SmkImageFetcher"; // <-- NY IMPORT!
 
 import CustomButton from "@/components/global/CustomButton";
 import Step from "./Step";
@@ -29,9 +31,10 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
-import KuratorGallery from "@/components/kurator_create_edit/KuratorGallery"; // Importer Gallery-komponenten
+// import KuratorGallery from "@/components/kurator_create_edit/KuratorGallery"; // Fjern denne import, da SmkImageFetcher håndterer den
+// import SelectedImagesPreview from "./SelectedImagesPreview"; // Fjern denne import, da SmkImageFetcher håndterer den
+import Placeholder from "../../app/assets/img/placeholder.png";
 
-// Definer skema med Zod til validering
 const formSchema = z.object({
   title: z.string().min(2, {
     message: "Titel skal være mindst 2 tegn.",
@@ -43,7 +46,6 @@ const formSchema = z.object({
     required_error: "Dato er påkrævet.",
   }),
   description: z.string().optional(),
-  // Tilføj artworkIds til skemaet (array af strenge)
   artworkIds: z.array(z.string()).optional(),
 });
 
@@ -51,17 +53,34 @@ export function Kuratorform({
   eventDates,
   eventLocations,
   eventData,
-  smkImages, // Modtag smkImages
-  categories, // Modtag kategorier
-  maxImages, // Modtag maxImages
+  categories,
+  maxImages,
 }) {
   const router = useRouter();
 
-  // State til at holde styr på de valgte billeder
-  // Forudfyld med eksisterende billeder fra eventData
+  // ***** FJERNEDE STATE OG USEEFFECT FOR SMK BILLEDER HERFRA *****
+  // const [smkImages, setSmkImages] = useState([]);
+  // const [isLoadingImages, setIsLoadingImages] = useState(true);
+  // const [imageError, setImageError] = useState(null);
+  // Fjern den useEffect, der kalder fetchSmkImages()
+  // *************************************************************
+
   const [selectedImages, setSelectedImages] = useState(
     eventData?.artworkIds || []
   );
+
+  // Denne useEffect opdaterer selectedImages, når eventData ændrer sig (ved redigering)
+  useEffect(() => {
+    if (eventData) {
+      setSelectedImages(eventData.artworkIds || []);
+      console.log(
+        "DEBUG_KuratorForm: useEffect updated selectedImages from eventData:",
+        eventData.artworkIds
+      );
+    } else {
+      setSelectedImages([]);
+    }
+  }, [eventData]);
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -70,38 +89,20 @@ export function Kuratorform({
       locationId: eventData?.location?.id || "",
       date: eventData?.date ? parseISO(eventData.date) : undefined,
       description: eventData?.description || "",
-      artworkIds: eventData?.artworkIds || [], // Forudfyld artworkIds
+      artworkIds: eventData?.artworkIds || [],
     },
   });
 
-  // Brug useEffect til at opdatere form'ens felt for artworkIds, når selectedImages ændres
-  React.useEffect(() => {
+  // Denne useEffect synkroniserer selectedImages state med react-hook-form's interne state
+  useEffect(() => {
     form.setValue("artworkIds", selectedImages, { shouldValidate: true });
+    console.log(
+      "DEBUG_KuratorForm: Form's artworkIds updated via setValue:",
+      selectedImages
+    );
   }, [selectedImages, form]);
 
-  React.useEffect(() => {
-    if (eventData) {
-      form.reset({
-        title: eventData.title || "",
-        locationId: eventData.location?.id || "",
-        date: eventData.date ? parseISO(eventData.date) : undefined,
-        description: eventData.description || "",
-        artworkIds: eventData.artworkIds || [], // Sørg for at nulstille artworkIds her
-      });
-      setSelectedImages(eventData.artworkIds || []); // Nulstil også den lokale state for selectedImages
-    } else {
-      form.reset({
-        title: "",
-        locationId: "",
-        date: undefined,
-        description: "",
-        artworkIds: [],
-      });
-      setSelectedImages([]); // Nulstil til tom array ved ny oprettelse
-    }
-  }, [eventData, form]);
-
-  const allowedDates = React.useMemo(() => {
+  const allowedDates = useMemo(() => {
     if (!eventDates) return new Set();
     return new Set(
       eventDates
@@ -119,8 +120,10 @@ export function Kuratorform({
     const formattedData = {
       ...data,
       date: format(data.date, "yyyy-MM-dd"),
-      artworkIds: selectedImages, // Sørg for at inkludere de valgte billeder
+      artworkIds: selectedImages,
     };
+
+    console.log("DEBUG_SUBMIT: Data being sent to API:", formattedData);
 
     try {
       if (eventData) {
@@ -133,13 +136,15 @@ export function Kuratorform({
       router.push("/dashboard");
       router.refresh();
     } catch (error) {
-      console.error("Fejl ved håndtering af event:", error);
+      console.error("DEBUG_SUBMIT: Fejl ved håndtering af event:", error);
       alert("Der skete en fejl under håndtering af eventet.");
     }
   };
 
-  // Bestem om en lokation er valgt (nødvendig for at vise Galleriet)
   const locationSelected = !!form.watch("locationId");
+
+  // selectedImageObjects useMemo er fjernet herfra, da SelectedImagesPreview
+  // nu selv håndterer filtreringen baseret på de fulde smkImages.
 
   return (
     <Form {...form}>
@@ -227,21 +232,19 @@ export function Kuratorform({
           )}
         />
 
-        {/* Billedevalg sektion */}
         <Step number="2" text="Vælg billeder til eventet" />
         <p className="text-sm text-gray-500 mb-4">
           Vælg billeder fra SMK's samling. Du kan vælge op til{" "}
           <span className="font-bold">{maxImages}</span> billeder.
         </p>
-        <KuratorGallery
-          smkdata={{ smk: smkImages }} // Send smkImages som 'smk' property
+
+        {/* Her kalder vi vores nye Server Component */}
+        <SmkImageFetcher
           categories={categories}
           maxImages={maxImages}
-          locationSelected={locationSelected} // Send om en lokation er valgt
-          currentlySelectedArtworks={selectedImages} // Brug selectedImages state her
-          selectedImages={selectedImages}
-          setSelectedImages={setSelectedImages}
-          // handleImageSelect behøver ikke at sendes her, da det håndteres internt af Gallery/GalleryCard
+          locationSelected={locationSelected}
+          selectedImages={selectedImages} // Send selectedImages state (IDs) ned
+          setSelectedImages={setSelectedImages} // Send setSelectedImages funktion ned
         />
 
         <CustomButton type="submit">
