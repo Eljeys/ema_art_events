@@ -56,11 +56,7 @@ const EventItem = ({ artImgs, ...dataevent }) => {
 
         <div className=" max-w-[180px] h-[250px] col-1 row-start-2 row-span-2 self-end justify-self-end rounded-lg">
           <Image
-            src={
-              primaryArtImg?.image_thumbnail ||
-              primaryArtImg?.image_native ||
-              Placeholder
-            }
+            src={primaryArtImg?.image_thumbnail}
             alt="noget"
             width={500}
             height={500}

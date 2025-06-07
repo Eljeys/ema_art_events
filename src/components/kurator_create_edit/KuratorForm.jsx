@@ -1,10 +1,11 @@
 // src/components/kurator_create_edit/KuratorForm.jsx
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useActionState } from "react";
 
 // Shadcn UI Components
 import { Button } from "@/components/ui/button";
@@ -30,28 +31,50 @@ import { Label } from "@/components/ui/label";
 
 // Lokale komponenter/assets
 import Placeholder from "../../app/assets/img/placeholder.png";
-import { createEvent, updateEvent } from "@/lib/api";
 
-const KuratorForm = ({ images, locations, prevData }) => {
-  // Debugging logs for initialisering af prevData og selectedImages
+// Importér filter-relaterede komponenter og actions
+import { filterData } from "@/components/global/filter/actions";
+import Filter from "@/components/global/filter/Filter";
+
+const KuratorForm = ({
+  images: initialImages,
+  locations,
+  prevData,
+  filterCategories,
+  prevSelectedArtworkDetails,
+}) => {
   console.log("KuratorForm - prevData ved initialisering:", prevData);
   console.log("KuratorForm - prevData?.artworkIds:", prevData?.artworkIds);
+  console.log(
+    "KuratorForm - initialImages prop (fra page.jsx):",
+    initialImages
+  );
+  console.log(
+    "KuratorForm - filterCategories prop (fra page.jsx):",
+    filterCategories
+  );
+  console.log(
+    "KuratorForm - prevSelectedArtworkDetails prop (fra page.jsx):",
+    prevSelectedArtworkDetails
+  );
 
   const form = useForm({
-    defaultValues: prevData || {
-      title: "",
-      date: "",
-      locationId: "", // Vigtigt at initialisere med tom streng for select, hvis intet er valgt
-      description: "",
+    defaultValues: {
+      title: prevData?.title || "",
+      date: prevData?.date || "",
+      locationId: prevData?.locationId?.toString() || "",
+      description: prevData?.description || "",
     },
   });
 
-  const { handleSubmit, control } = form; // 'register' er ikke længere nødvendig, da du bruger FormField
+  const { handleSubmit, control, getValues } = form;
 
-  // Initialiser selectedImages med de eksisterende artworkIds fra prevData.
-  // Sørg for at prevData?.artworkIds er et array, selvom det er undefined eller null.
   const [selectedImages, setSelectedImages] = useState(
     prevData?.artworkIds || []
+  );
+
+  const [selectedArtworkDetails, setSelectedArtworkDetails] = useState(
+    prevSelectedArtworkDetails || []
   );
 
   console.log(
@@ -59,7 +82,88 @@ const KuratorForm = ({ images, locations, prevData }) => {
     selectedImages
   );
 
+  const [filterState, formAction, isFiltering] = useActionState(filterData, {
+    active: [],
+    data: initialImages || [],
+    totalFound: initialImages?.length || 0,
+  });
+
+  const [isPending, startTransition] = useTransition();
+
+  const displayedImages = filterState.data;
+
+  // PAGINERING STATES OG LOGIK
+  const [currentPage, setCurrentPage] = useState(1);
+  const imagesPerPage = 20; // <-- Antal billeder per side
+
+  // Filtrer først valgte billeder fra displayedImages
+  const filteredDisplayedImages = displayedImages.filter(
+    (img) => !selectedImages.includes(img.object_number)
+  );
+
+  // Beregn billeder til den aktuelle side
+  const indexOfLastImage = currentPage * imagesPerPage;
+  const indexOfFirstImage = indexOfLastImage - imagesPerPage;
+  const currentImagesForGallery = filteredDisplayedImages.slice(
+    indexOfFirstImage,
+    indexOfLastImage
+  );
+
+  const totalPages = Math.ceil(filteredDisplayedImages.length / imagesPerPage);
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
   const router = useRouter();
+
+  const handleImageClick = (img) => {
+    setSelectedImages((prevSelectedImages) => {
+      const isCurrentlySelected = prevSelectedImages.includes(
+        img.object_number
+      );
+
+      let newSelectedImageIds;
+      if (isCurrentlySelected) {
+        newSelectedImageIds = prevSelectedImages.filter(
+          (item) => item !== img.object_number
+        );
+      } else {
+        const selectedLocation = locations.find(
+          (loc) => loc.id.toString() === getValues("locationId")
+        );
+
+        if (
+          selectedLocation &&
+          selectedLocation.maxArtworks &&
+          prevSelectedImages.length >= selectedLocation.maxArtworks
+        ) {
+          alert(
+            `Du kan kun vælge op til ${selectedLocation.maxArtworks} billeder for denne lokation.`
+          );
+          return prevSelectedImages;
+        }
+        newSelectedImageIds = [...prevSelectedImages, img.object_number];
+      }
+
+      setSelectedArtworkDetails((prevDetails) => {
+        if (isCurrentlySelected) {
+          return prevDetails.filter(
+            (detail) => detail.object_number !== img.object_number
+          );
+        } else {
+          if (
+            !prevDetails.some(
+              (detail) => detail.object_number === img.object_number
+            )
+          ) {
+            return [...prevDetails, img];
+          }
+          return prevDetails;
+        }
+      });
+
+      return newSelectedImageIds;
+    });
+  };
 
   const onSubmit = async (data) => {
     const payload = {
@@ -67,40 +171,83 @@ const KuratorForm = ({ images, locations, prevData }) => {
       date: data.date,
       locationId: data.locationId,
       description: data.description,
-      artworkIds: selectedImages, // Denne state indeholder de valgte billeder
+      artworkIds: selectedImages,
     };
 
-    console.log("Payload, der sendes til API:", payload); // Log den endelige payload
+    console.log("Payload, der sendes til API:", payload);
 
     try {
+      let response;
       if (prevData && prevData.id) {
         console.log(
-          "Forsøger at opdatere event (PATCH):",
-          payload,
-          "ID:",
-          prevData.id
+          "Forsøger at opdatere event (PATCH) via Next.js API-rute:",
+          `/api/events/${prevData.id}`,
+          "med payload:",
+          payload
         );
-        await updateEvent(prevData.id, payload);
-        alert("Eventet er opdateret succesfuldt!");
+        response = await fetch(`/api/events/${prevData.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
       } else {
-        console.log("Forsøger at oprette event (POST):", payload);
-        await createEvent(payload);
-        alert("Eventet er oprettet succesfuldt!");
+        console.log(
+          "Forsøger at oprette event (POST) via Next.js API-rute:",
+          `/api/events`,
+          "med payload:",
+          payload
+        );
+        response = await fetch("/api/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
       }
 
-      router.push("/dashboard"); // Juster stien om nødvendigt
+      if (response.ok) {
+        const result = await response.json();
+        console.log(
+          `Event ${prevData ? "opdateret" : "oprettet"} succesfuldt:`,
+          result
+        );
+        alert(`Eventet er ${prevData ? "opdateret" : "oprettet"} succesfuldt!`);
+        router.push("/dashboard");
+      } else {
+        const errorData = await response.json();
+        console.error(
+          "Fejl ved event handling via Next.js API-rute:",
+          errorData
+        );
+        alert(
+          `Der opstod en fejl ved ${prevData ? "opdatering" : "oprettelse"} af event: ${errorData.message || "Ukendt fejl"}. Tjek konsollen for detaljer.`
+        );
+      }
     } catch (error) {
-      console.error("Fejl ved submit af event:", error);
+      console.error(
+        "Netværksfejl ved submit af event til Next.js API-rute:",
+        error
+      );
       alert(
-        "Der opstod en fejl ved oprettelse/opdatering af event. Tjek konsollen for detaljer."
+        "Der opstod en netværksfejl ved oprettelse/opdatering af event. Tjek konsollen for detaljer."
       );
     }
+  };
+
+  const handleFilterSelection = (value, name) => {
+    let newFilters = [];
+    if (value !== "all") {
+      newFilters = [`${name}:${value}`];
+    }
+    startTransition(() => {
+      formAction(newFilters);
+      setCurrentPage(1); // Nulstil til side 1, når filter ændres
+    });
   };
 
   return (
     <Form {...form}>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 p-4">
-        {/* Title Input */}
+        {/* ... (Dine andre formfelter: Title, Date, Location, Description) ... */}
         <FormField
           control={control}
           name="title"
@@ -115,7 +262,6 @@ const KuratorForm = ({ images, locations, prevData }) => {
             </FormItem>
           )}
         />
-        {/* Date Input */}
         <FormField
           control={control}
           name="date"
@@ -130,25 +276,19 @@ const KuratorForm = ({ images, locations, prevData }) => {
             </FormItem>
           )}
         />
-        {/* Location Select */}
         <FormField
           control={control}
           name="locationId"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Lokation</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value || ""}
-              >
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Vælg en lokation" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {/* RETTET TILBAGE TIL DIN FØR-VERSION: value="location" */}
-                  <SelectItem value="location">Vælg en lokation</SelectItem>
                   {locations.map((location) => (
                     <SelectItem
                       key={location.id}
@@ -166,7 +306,6 @@ const KuratorForm = ({ images, locations, prevData }) => {
             </FormItem>
           )}
         />
-        {/* Description Textarea */}
         <FormField
           control={control}
           name="description"
@@ -183,61 +322,126 @@ const KuratorForm = ({ images, locations, prevData }) => {
             </FormItem>
           )}
         />
-        {/* GALLERI SECTION */}
+
+        {/* Valgte Billeder Sektion - JUSTERET GRID KLASSER OG SIZES HER */}
+        <div className="space-y-4 border p-4 rounded-lg bg-gray-50">
+          <Label className="text-lg font-semibold">Valgte Billeder</Label>
+          {selectedArtworkDetails.length > 0 ? (
+            <div
+              className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-8 xl:grid-cols-10 gap-1" // <-- JUSTERET HER! Flere kolonner, mindre gap
+            >
+              {selectedArtworkDetails.map((img) => (
+                <div
+                  key={`selected-${img.object_number}`}
+                  onClick={() => handleImageClick(img)}
+                  className="relative aspect-square overflow-hidden rounded-md cursor-pointer ring-4 ring-blue-500 opacity-100 hover:opacity-75 transition-all duration-200 ease-in-out"
+                >
+                  <Image
+                    src={img.image_thumbnail || img.image_native || Placeholder}
+                    alt={img.title || "Valgt billede"}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 70px, (max-width: 768px) 60px, (max-width: 1024px) 50px, (max-width: 1280px) 40px, 35px" // <-- JUSTERET HER! Endnu mindre sizes
+                  />
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                    <span className="text-white text-2xl">✓</span>{" "}
+                    {/* Mindre tjek-ikon */}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500">Ingen billeder er valgt endnu.</p>
+          )}
+        </div>
+
+        {/* GALLERI SECTION MED FILTER OG PAGINERING */}
         <div className="space-y-4">
           <Label className="text-lg font-semibold">Vælg billeder fra SMK</Label>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-x-8">
             <div className="md:col-span-1">
-              <p className="text-gray-600">Filter her (placeholder)</p>
+              {filterCategories && filterCategories.length > 0 ? (
+                <Filter data={filterCategories} fn={handleFilterSelection} />
+              ) : (
+                <p>Ingen filterkategorier fundet.</p>
+              )}
             </div>
-            <div className="md:col-span-2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {images.map((img) => {
-                // Tjek om billedet er valgt i den aktuelle state
-                const isSelected = selectedImages.includes(img.object_number);
-
-                return (
-                  <div
-                    key={img.object_number}
-                    onClick={() => {
-                      setSelectedImages((prevSelectedImages) => {
-                        if (prevSelectedImages.includes(img.object_number)) {
-                          // Billedet er allerede valgt, fravælg det
-                          return prevSelectedImages.filter(
-                            (item) => item !== img.object_number
-                          );
-                        } else {
-                          // Billedet er ikke valgt, vælg det
-                          return [...prevSelectedImages, img.object_number];
-                        }
-                      });
-                    }}
-                    className={`relative aspect-square overflow-hidden rounded-md cursor-pointer
-                      ${
-                        isSelected
-                          ? "ring-4 ring-green-500" // Brug ring for valgte billeder
-                          : "opacity-75 hover:opacity-100" // Standardudseende
-                      }
-                      transition-all duration-200 ease-in-out
-                      ${isSelected ? "order-first" : ""} 
-                    `}
-                  >
-                    <Image
-                      src={
-                        img.image_thumbnail || img.image_native || Placeholder
-                      }
-                      alt={img.title || "SMK billede"}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    />
-                    {isSelected && ( // Vis flueben, hvis billedet er valgt
-                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                        <span className="text-white text-3xl">✓</span>
+            <div className="md:col-span-3">
+              {" "}
+              {/* Opdelte denne div i to for at placere paginering */}
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+                {currentImagesForGallery.length > 0 ? ( // <-- BRUG currentImagesForGallery HER
+                  currentImagesForGallery.map((img) => {
+                    const isSelected = selectedImages.includes(
+                      img.object_number
+                    );
+                    return (
+                      <div
+                        key={img.object_number}
+                        onClick={() => handleImageClick(img)}
+                        className={`relative aspect-square overflow-hidden rounded-md cursor-pointer
+                          ${
+                            isSelected
+                              ? "ring-4 ring-green-500"
+                              : "opacity-75 hover:opacity-100"
+                          }
+                          transition-all duration-200 ease-in-out
+                          ${isSelected ? "order-first" : ""}
+                        `}
+                      >
+                        <Image
+                          src={
+                            img.image_thumbnail ||
+                            img.image_native ||
+                            Placeholder
+                          }
+                          alt={img.title || "SMK billede"}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 640px) 120px, (max-width: 768px) 100px, (max-width: 1024px) 90px, (max-width: 1280px) 80px, 70px"
+                        />
+                        {isSelected && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <span className="text-white text-3xl">✓</span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+                    );
+                  })
+                ) : isFiltering || isPending ? ( // Viser loading, hvis filter eller transition er aktiv
+                  <p className="md:col-span-full text-center">
+                    Indlæser billeder...
+                  </p>
+                ) : (
+                  <p className="md:col-span-full text-center text-gray-500">
+                    Ingen billeder fundet med de valgte filtre.
+                  </p>
+                )}
+              </div>
+              {/* PAGINERINGSKNAPPER */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center space-x-2 mt-4">
+                  <Button
+                    onClick={() => paginate(currentPage - 1)}
+                    disabled={currentPage === 1 || isFiltering || isPending}
+                    variant="outline"
+                  >
+                    Forrige
+                  </Button>
+                  <span className="text-gray-700">
+                    Side {currentPage} af {totalPages}
+                  </span>
+                  <Button
+                    onClick={() => paginate(currentPage + 1)}
+                    disabled={
+                      currentPage === totalPages || isFiltering || isPending
+                    }
+                    variant="outline"
+                  >
+                    Næste
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -48,18 +48,40 @@ export async function getSMK() {
   return SMKItems;
 }
 
-export async function getSMKImg() {
-  const datasSMK = await fetch(
-    "https://api.smk.dk/api/v1/art/search?keys=*&filters=[has_image:true]&offset=0&rows=8",
-    {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    }
-  );
+// MODIFICERET: getSMKImg funktionen til at håndtere filtre og et højere antal rækker
+export async function getSMKImg(filters = []) {
+  // <-- Tilføjet 'filters' parameter med standardværdi
+  const filterString =
+    filters.length > 0 ? `&filters=[${filters.join("],[")}]` : "";
+  // Sæt et højt antal rækker (f.eks. 500 eller 1000) for at hente mange billeder
+  const url = `https://api.smk.dk/api/v1/art/search?keys=*&offset=0&rows=500${filterString}&filters=[has_image:true]`; // <-- Rows sat til 500, og filterString tilføjet
+
+  console.log("DEBUG_API: Henter SMK-billeder med URL:", url);
+
+  const datasSMK = await fetch(url, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+    cache: "no-store", // Ingen cache for dynamiske/filtrerede resultater
+  });
+
+  if (!datasSMK.ok) {
+    const errorText = await datasSMK.text();
+    console.error(
+      "Fejl ved hentning af SMK-billeder (getSMKImg):",
+      datasSMK.status,
+      errorText
+    );
+    throw new Error(
+      `Failed to fetch SMK images: ${datasSMK.status} ${datasSMK.statusText}`
+    );
+  }
+
   const dataSMK = await datasSMK.json();
   const SMKimages = dataSMK.items;
-  return SMKimages;
+  const totalFound = dataSMK.totalFound; // Inkluder totalFound, hvis du vil vise det på klienten
+
+  return { items: SMKimages, totalFound: totalFound }; // Returner et objekt med items og totalFound
 }
 
 export async function getArtworkByEventID(objectNumber) {
@@ -70,7 +92,9 @@ export async function getArtworkByEventID(objectNumber) {
   return artImg;
 }
 
-// Filter
+// Filter (getSMKFilter behøves ikke længere, da getSMKImg nu håndterer filtrering)
+// Eksisterende getSMKFilter kan fjernes eller beholdes, hvis den bruges andre steder.
+// Hvis den kun bruges her, kan den fjernes.
 export async function getSMKFilter(filter, hasImg) {
   const { items } = await fetch(
     `https://api.smk.dk/api/v1/art/search/?keys=*${
@@ -84,6 +108,7 @@ export async function getSMKFilter(filter, hasImg) {
   ).then((res) => res.json());
   return items;
 }
+
 export async function getSMKFilterCat() {
   const {
     facets: { artist, techniques },
