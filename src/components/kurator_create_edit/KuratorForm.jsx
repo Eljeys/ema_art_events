@@ -324,28 +324,31 @@ const KuratorForm = ({
         />
 
         {/* Valgte Billeder Sektion - JUSTERET GRID KLASSER OG SIZES HER */}
-        <div className="space-y-4 border p-4 rounded-lg bg-gray-50">
+        <div className="space-y-4 border p-4 rounded-lg">
           <Label className="text-lg font-semibold">Valgte Billeder</Label>
           {selectedArtworkDetails.length > 0 ? (
-            <div
-              className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-8 xl:grid-cols-10 gap-1" // <-- JUSTERET HER! Flere kolonner, mindre gap
-            >
+            <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-8 xl:grid-cols-10 gap-4">
               {selectedArtworkDetails.map((img) => (
                 <div
                   key={`selected-${img.object_number}`}
                   onClick={() => handleImageClick(img)}
-                  className="relative aspect-square overflow-hidden rounded-md cursor-pointer ring-4 ring-blue-500 opacity-100 hover:opacity-75 transition-all duration-200 ease-in-out"
+                  className="relative aspect-square overflow-hidden rounded-md cursor-pointer ring-4 ring-purple-500 group" // Added group class
                 >
                   <Image
                     src={img.image_thumbnail || img.image_native || Placeholder}
-                    alt={img.title || "Valgt billede"}
+                    alt={img.titles?.[0]?.title || "Valgt billede"}
                     fill
-                    className="object-cover"
-                    sizes="(max-width: 640px) 70px, (max-width: 768px) 60px, (max-width: 1024px) 50px, (max-width: 1280px) 40px, 35px" // <-- JUSTERET HER! Endnu mindre sizes
+                    className="object-cover transition-transform duration-300 group-hover:scale-105 group-hover:brightness-50" // Added transition and brightness
+                    // title={img.titles?.[0]?.title || "Valgt billede"} // Fjernet title herfra
                   />
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
                     <span className="text-white text-2xl">✓</span>{" "}
-                    {/* Mindre tjek-ikon */}
+                  </div>
+                  {/* Overlay for titel */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <p className="text-white text-center text-xs px-2 break-words">
+                      {img.titles?.[0]?.title || "Ukendt titel"}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -368,9 +371,8 @@ const KuratorForm = ({
             </div>
             <div className="md:col-span-3">
               {" "}
-              {/* Opdelte denne div i to for at placere paginering */}
               <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-                {currentImagesForGallery.length > 0 ? ( // <-- BRUG currentImagesForGallery HER
+                {currentImagesForGallery.length > 0 ? (
                   currentImagesForGallery.map((img) => {
                     const isSelected = selectedImages.includes(
                       img.object_number
@@ -379,7 +381,7 @@ const KuratorForm = ({
                       <div
                         key={img.object_number}
                         onClick={() => handleImageClick(img)}
-                        className={`relative aspect-square overflow-hidden rounded-md cursor-pointer
+                        className={`relative aspect-square overflow-hidden rounded-md cursor-pointer group // Added group class
                           ${
                             isSelected
                               ? "ring-4 ring-green-500"
@@ -395,20 +397,26 @@ const KuratorForm = ({
                             img.image_native ||
                             Placeholder
                           }
-                          alt={img.title || "SMK billede"}
+                          alt={img.titles?.[0]?.title || "SMK billede"}
                           fill
-                          className="object-cover"
-                          sizes="(max-width: 640px) 120px, (max-width: 768px) 100px, (max-width: 1024px) 90px, (max-width: 1280px) 80px, 70px"
+                          className="object-cover transition-transform duration-300 group-hover:scale-105 group-hover:brightness-50" // Added transition and brightness
+                          // title={img.titles?.[0]?.title || "SMK billede"} // Fjernet title herfra
                         />
                         {isSelected && (
-                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
                             <span className="text-white text-3xl">✓</span>
                           </div>
                         )}
+                        {/* Overlay for titel */}
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <p className="text-white text-center text-xs px-2 break-words">
+                            {img.titles?.[0]?.title || "Ukendt titel"}
+                          </p>
+                        </div>
                       </div>
                     );
                   })
-                ) : isFiltering || isPending ? ( // Viser loading, hvis filter eller transition er aktiv
+                ) : isFiltering || isPending ? (
                   <p className="md:col-span-full text-center">
                     Indlæser billeder...
                   </p>
