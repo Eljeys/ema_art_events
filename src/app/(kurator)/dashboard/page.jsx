@@ -1,4 +1,3 @@
-// dashboard.jsx
 import {
   getEvent,
   getArtworkByEventID, // Denne skal du stadig bruge til individuelle billeder
