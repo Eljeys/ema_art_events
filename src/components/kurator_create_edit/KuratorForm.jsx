@@ -35,6 +35,7 @@ import Placeholder from "../../app/assets/img/placeholder.png";
 // Importér filter-relaterede komponenter og actions
 import { filterData } from "@/components/global/filter/actions";
 import Filter from "@/components/global/filter/Filter";
+import CustomButton from "../global/CustomButton";
 
 const KuratorForm = ({
   images: initialImages,
@@ -429,34 +430,38 @@ const KuratorForm = ({
               {/* PAGINERINGSKNAPPER */}
               {totalPages > 1 && (
                 <div className="flex justify-center items-center space-x-2 mt-4">
-                  <Button
+                  <CustomButton
                     onClick={() => paginate(currentPage - 1)}
                     disabled={currentPage === 1 || isFiltering || isPending}
                     variant="outline"
+                    type="button"
                   >
                     Forrige
-                  </Button>
+                  </CustomButton>
                   <span className="text-gray-700">
                     Side {currentPage} af {totalPages}
                   </span>
-                  <Button
+                  <CustomButton
                     onClick={() => paginate(currentPage + 1)}
                     disabled={
                       currentPage === totalPages || isFiltering || isPending
                     }
                     variant="outline"
+                    type="button"
                   >
                     Næste
-                  </Button>
+                  </CustomButton>
                 </div>
               )}
             </div>
           </div>
         </div>
         {/* Submit Button */}
-        <Button type="submit" className="w-full">
-          {prevData ? "Opdater Event" : "Opret Event"}
-        </Button>
+        <CustomButton
+          type="submit"
+          text="Submit"
+          className="w-fit"
+        ></CustomButton>
       </form>
     </Form>
   );

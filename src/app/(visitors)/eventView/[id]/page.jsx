@@ -1,5 +1,5 @@
 import OpacityTextBox from "@/components/global/OpacityTextBox";
-import TicketCounterForEventView from "@/components/global/TicketCounter";
+import TicketCounter from "@/components/global/TicketCounter";
 import { getEventId, getArtworkByEventID } from "@/lib/api";
 import Placeholder from "@/app/assets/img/placeholder.png";
 import Gallery from "@/components/eventView/Gallery";
@@ -91,7 +91,7 @@ export default async function EventView({ params, searchParams }) {
             maxContentHeightClasses="overflow-y-auto"
           />
 
-          <TicketCounterForEventView
+          <TicketCounter
             eventId={dataeventid.id}
             totalTickets={dataeventid.location?.maxGuests}
             bookedTickets={dataeventid.bookedTickets}
