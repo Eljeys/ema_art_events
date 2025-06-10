@@ -58,7 +58,7 @@ const Gallery = ({ galleryData }) => {
       <section className="flex flex-col items-center">
         <div
           className="relative flex items-center justify-between self-center p-4 rounded-lg shadow-lg"
-          style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+          style={{ backgroundColor: "rgba(255, 255, 255, 0.5)" }}
         >
           <button
             onClick={scrollLeft}
