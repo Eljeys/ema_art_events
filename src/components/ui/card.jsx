@@ -11,7 +11,7 @@ const cardVariants = cva(
           "bg-card text-card-foreground flex flex-col gap-4 rounded-xl py-4 shadow-sm ",
 
         opacity:
-          "bg-text-clr opacity-80 text-btn-textClr flex rounded-xl shadow-sm h-fit gap-4",
+          "bg-white opacity-80 text-black flex rounded-xl shadow-sm h-fit gap-4",
       },
     },
   }

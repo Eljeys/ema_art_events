@@ -22,12 +22,12 @@ Mandag Lukket`;
       </div>
 
       <main className="relative z-10 w-full md:gap-(--space-1rem) md:pl-(--space-2rem)">
-        <h1 className="md:w-[15ch] h-fit bg-blue-500 col-start-1 row-1 text-white">
+        <h1 className="md:w-[15ch] h-fit bg-white col-start-1 row-1 text-blue-500">
           Statens Museum for Kunst
         </h1>
         <CustomButton
           className="col-start-1 row-2 text-xl"
-          text="Se alle events"
+          text="Se alle begivenheder"
           link="/events"
         />
         <OpacityTextBox

@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import CustomButton from "@/components/global/CustomButton";
 
-// Modtag selectedEventDetails som en prop
+// Modtager selectedEventDetails som en prop
 const PersonalForm = ({
   onPaymentConfirmed,
   className,

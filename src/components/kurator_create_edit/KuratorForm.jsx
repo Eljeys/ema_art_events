@@ -1,5 +1,5 @@
-// src/components/kurator_create_edit/KuratorForm.jsx
 "use client";
+import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useActionState } from "react";
 
 // Shadcn UI Components
-import { Button } from "@/components/ui/button";
+
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -95,7 +95,7 @@ const KuratorForm = ({
 
   // PAGINERING STATES OG LOGIK
   const [currentPage, setCurrentPage] = useState(1);
-  const imagesPerPage = 20; // <-- Antal billeder per side
+  const imagesPerPage = 15; // <-- Antal billeder per side
 
   // Filtrer først valgte billeder fra displayedImages
   const filteredDisplayedImages = displayedImages.filter(
@@ -248,65 +248,68 @@ const KuratorForm = ({
   return (
     <Form {...form}>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 p-4">
-        {/* ... (Dine andre formfelter: Title, Date, Location, Description) ... */}
-        <FormField
-          control={control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Title</FormLabel>
-              <FormControl>
-                <Input placeholder="Event Title" {...field} />
-              </FormControl>
-              <FormDescription>Dette er eventets titel.</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={control}
-          name="date"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Dato</FormLabel>
-              <FormControl>
-                <Input type="date" {...field} value={field.value || ""} />
-              </FormControl>
-              <FormDescription>Vælg eventets dato.</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={control}
-          name="locationId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Lokation</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4">
+          <FormField
+            control={control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Titel</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Vælg en lokation" />
-                  </SelectTrigger>
+                  <Input placeholder="Begivenhedens titel" {...field} />
                 </FormControl>
-                <SelectContent>
-                  {locations.map((location) => (
-                    <SelectItem
-                      key={location.id}
-                      value={location.id.toString()}
-                    >
-                      {location.name} (Max billeder: {location.maxArtworks})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormDescription>
-                Vælg den lokation eventet afholdes på.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormDescription></FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={control}
+            name="date"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Dato</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} value={field.value || ""} />
+                </FormControl>
+                <FormDescription></FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={control}
+            name="locationId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Lokation</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Vælg en lokation" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {locations.map((location) => (
+                      <SelectItem
+                        key={location.id}
+                        value={location.id.toString()}
+                      >
+                        {location.name} (Max billeder: {location.maxArtworks})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription></FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
         <FormField
           control={control}
           name="description"
@@ -316,9 +319,7 @@ const KuratorForm = ({
               <FormControl>
                 <Textarea placeholder="Beskrivelse af eventet" {...field} />
               </FormControl>
-              <FormDescription>
-                Giv en detaljeret beskrivelse af eventet.
-              </FormDescription>
+              <FormDescription></FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -333,13 +334,13 @@ const KuratorForm = ({
                 <div
                   key={`selected-${img.object_number}`}
                   onClick={() => handleImageClick(img)}
-                  className="relative aspect-square overflow-hidden rounded-md cursor-pointer ring-4 ring-purple-500 group" // Added group class
+                  className="relative aspect-square overflow-hidden rounded-md cursor-pointer ring-4 ring-blue-500 group"
                 >
                   <Image
                     src={img.image_thumbnail || img.image_native || Placeholder}
                     alt={img.titles?.[0]?.title || "Valgt billede"}
                     fill
-                    className="object-cover transition-transform duration-300 group-hover:scale-105 group-hover:brightness-50" // Added transition and brightness
+                    className="object-cover transition-transform duration-300 group-hover:scale-105 group-hover:brightness-50"
                     // title={img.titles?.[0]?.title || "Valgt billede"} // Fjernet title herfra
                   />
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
@@ -385,7 +386,7 @@ const KuratorForm = ({
                         className={`relative aspect-square overflow-hidden rounded-md cursor-pointer group // Added group class
                           ${
                             isSelected
-                              ? "ring-4 ring-green-500"
+                              ? "ring-4 ring-blue-500"
                               : "opacity-75 hover:opacity-100"
                           }
                           transition-all duration-200 ease-in-out
@@ -400,7 +401,7 @@ const KuratorForm = ({
                           }
                           alt={img.titles?.[0]?.title || "SMK billede"}
                           fill
-                          className="object-cover transition-transform duration-300 group-hover:scale-105 group-hover:brightness-50" // Added transition and brightness
+                          className="object-cover transition-transform duration-300 group-hover:scale-105 group-hover:brightness-50"
                           // title={img.titles?.[0]?.title || "SMK billede"} // Fjernet title herfra
                         />
                         {isSelected && (
@@ -435,9 +436,8 @@ const KuratorForm = ({
                     disabled={currentPage === 1 || isFiltering || isPending}
                     variant="outline"
                     type="button"
-                  >
-                    Forrige
-                  </CustomButton>
+                    text={<FaArrowLeft />}
+                  ></CustomButton>
                   <span className="text-gray-700">
                     Side {currentPage} af {totalPages}
                   </span>
@@ -448,9 +448,8 @@ const KuratorForm = ({
                     }
                     variant="outline"
                     type="button"
-                  >
-                    Næste
-                  </CustomButton>
+                    text={<FaArrowRight />}
+                  ></CustomButton>
                 </div>
               )}
             </div>
@@ -460,7 +459,7 @@ const KuratorForm = ({
         <CustomButton
           type="submit"
           text="Submit"
-          className="w-fit"
+          className="w-fit text-xl"
         ></CustomButton>
       </form>
     </Form>
