@@ -362,7 +362,9 @@ const KuratorForm = ({
 
         {/* GALLERI SECTION MED FILTER OG PAGINERING */}
         <div className="space-y-4">
-          <Label className="text-lg font-semibold">Vælg billeder fra SMK</Label>
+          <Label className="text-lg font-semibold">
+            Filtrer billeder fra SMK
+          </Label>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-x-8">
             <div className="md:col-span-1">
               {filterCategories && filterCategories.length > 0 ? (
@@ -372,7 +374,6 @@ const KuratorForm = ({
               )}
             </div>
             <div className="md:col-span-3">
-              {" "}
               <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
                 {currentImagesForGallery.length > 0 ? (
                   currentImagesForGallery.map((img) => {

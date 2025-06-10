@@ -1,87 +1,48 @@
+// src/components/global/EventListWithFilter.jsx
 "use client";
+
 import CustomButton from "./CustomButton";
-import React, { useState } from "react";
+import React from "react";
 import EventItem from "@/components/global/EventItem";
-import Filter from "@/components/global/filter/Filter";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 
-const EventListWithFilter = ({
-  initialEvents,
-  availableDates,
-  availableLocations,
-  categories,
-}) => {
-  const [selectedLocation, setSelectedLocation] = useState("");
-  const [selectedDate, setSelectedDate] = useState("");
-  const [filteredEvents, setFilteredEvents] = useState(initialEvents);
-
+const EventListWithFilter = ({ displayedEvents, availableLocations }) => {
   const pathname = usePathname();
-
-  React.useEffect(() => {
-    setFilteredEvents(initialEvents);
-    setSelectedLocation("");
-    setSelectedDate("");
-  }, [initialEvents]);
-
-  const applyFilters = (location, date) => {
-    let currentFilteredEvents = initialEvents;
-
-    if (location) {
-      currentFilteredEvents = currentFilteredEvents.filter(
-        (event) => event.location?.id === location
-      );
-    }
-
-    if (date) {
-      currentFilteredEvents = currentFilteredEvents.filter(
-        (event) => event.date === date
-      );
-    }
-
-    setFilteredEvents(currentFilteredEvents);
-  };
-
-  const handleLocationChange = (value) => {
-    const newLocation = String(value || "").trim();
-    setSelectedLocation(newLocation);
-    applyFilters(newLocation, selectedDate);
-  };
-
-  const handleDateChange = (value) => {
-    const newDate = String(value || "").trim();
-    setSelectedDate(newDate);
-    applyFilters(selectedLocation, newDate);
-  };
+  const isDashboardPage = pathname === "/dashboard";
 
   return (
-    <>
-      <div className="@container">
-        <section className="grid grid-cols-1 grid-rows-auto @min-[775px]:grid-cols-2 gap-(--space-4rem)">
-          {filteredEvents.length > 0 ? (
-            filteredEvents.map((dataevent) => (
+    <div className="@container">
+      <section className="grid grid-cols-1 grid-rows-auto @min-[775px]:grid-cols-2 gap-(--space-4rem)">
+        {displayedEvents.length > 0 ? (
+          displayedEvents.map((dataevent) => {
+            const locationName =
+              availableLocations.find((loc) => loc.id === dataevent.locationId)
+                ?.name || "Ukendt lokation";
+            return (
               <EventItem
                 key={dataevent.id}
                 {...dataevent}
                 showTicketCounter={true}
-              />
-            ))
-          ) : (
-            <p>Ingen events matcher dine filtre.</p>
-          )}
-        </section>
-      </div>
-      <aside className="row-1 flex flex-row items-center justify-between px-(--space-2rem) py-(--space-1rem)">
-        <Filter
-          data={categories}
-          dates={availableDates}
-          locations={availableLocations}
-          setSelectedLocation={handleLocationChange}
-          setSelectedDate={handleDateChange}
-          selectedLocation={selectedLocation}
-          selectedDate={selectedDate}
-        />
-      </aside>
-    </>
+                locationName={locationName}
+              >
+                {isDashboardPage && (
+                  <div className="mt-4 flex gap-2">
+                    <Link href={`/create_edit?eventId=${dataevent.id}`}>
+                      <CustomButton text="Rediger" />
+                    </Link>
+                  </div>
+                )}
+              </EventItem>
+            );
+          })
+        ) : (
+          <p className="text-gray-500 text-center col-span-full">
+            Ingen events matcher dine filtre.
+          </p>
+        )}
+      </section>
+    </div>
   );
 };
 

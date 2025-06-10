@@ -1,29 +1,33 @@
+// /app/dashboard/page.jsx
+// Vigtigt: INGEN "use client"; her. Dette er en Server Komponent.
 import {
   getEvent,
-  getArtworkByEventID, // Denne skal du stadig bruge til individuelle billeder
+  getArtworkByEventID,
   getEventDates,
   getEventLocations,
-  getSMKFilterCat,
+  getSMKFilterCat, // Behold denne, hvis den bruges andre steder på din dashboard-side (f.eks. til SMK-filteret)
 } from "@/lib/api";
 
-import EventListWithFilter from "@/components/global/EventListWithFilter";
+// Importér den nye centrale klientkomponent til event-filtrering og liste-visning
+import EventFilterAndList from "@/components/global/filter/EventFilterAndList"; // <-- STIEN ER NU TILPASSET DIN STRUKTUR
 
 export default async function Dashboard() {
+  // Hent alle rådata på serveren FØRST
   const eventListRaw = await getEvent();
   const eventsDates = await getEventDates();
   const eventsLocations = await getEventLocations();
-  const categories = await getSMKFilterCat();
+  const categories = await getSMKFilterCat(); // Henter SMK kategorier - hvis relevant for andre UI-elementer her
 
+  // Berig alle events med kunstværksdata på serveren
+  // Dette sker kun én gang, når siden indlæses, og de berigede events sendes til klienten.
   const eventListWithArtwork = await Promise.all(
     eventListRaw.map(async (event) => {
-      let artImgsData = []; // <- Omdøbt til artImgsData (plural) og initialiseret som et tomt array
+      let artImgsData = [];
 
       if (event.artworkIds && event.artworkIds.length > 0) {
-        // Brug Promise.all til at hente data for ALLE billed-ID'er parallelt
         artImgsData = await Promise.all(
           event.artworkIds.map(async (artworkId) => {
             try {
-              // Hent data for hvert enkelt artworkId
               const imgData = await getArtworkByEventID(artworkId);
               return imgData;
             } catch (error) {
@@ -35,10 +39,9 @@ export default async function Dashboard() {
             }
           })
         );
-        // Filtrer eventuelle null-værdier fra, hvis en hentning fejlede
-        artImgsData = artImgsData.filter((img) => img !== null);
+        artImgsData = artImgsData.filter((img) => img !== null); // Filtrer eventuelle null-værdier fra
       }
-      console.log(`Dashboard: Event ID ${event.id} har artImgs:`, artImgsData);
+      // console.log(`Dashboard (Server): Event ID ${event.id} har artImgs:`, artImgsData.length); // Fjern denne log for at undgå overflødig output i produktion
       return {
         ...event,
         artImgs: artImgsData, // <- Send det samlede array af billeddata
@@ -48,12 +51,16 @@ export default async function Dashboard() {
 
   return (
     <main>
-      <EventListWithFilter
-        initialEvents={eventListWithArtwork}
+      {/* Send de FULDT berigede og ufiltrerede events til EventFilterAndList.
+          EventFilterAndList vil selv håndtere filtrering via Server Actions. */}
+      <EventFilterAndList
+        initialEvents={eventListWithArtwork} // Vigtigt: Send de berigede events her
         availableDates={eventsDates}
         availableLocations={eventsLocations}
-        categories={categories}
+        // categories={categories} // Send kun denne, hvis den bruges INDE I EventFilterAndList for noget andet end events-filtrering
       />
+      {/* Hvis du har en separat SMK-filterkomponent på Dashboard, skal den inkluderes her.
+          F.eks.: <Filter data={categories} onFilterChange={yourSmkFilterHandler} /> */}
     </main>
   );
 }
