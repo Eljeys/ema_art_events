@@ -25,7 +25,6 @@ export default function PaymentPage() {
   }, [items, router]);
 
   const handleConfirmPayment = () => {
-    console.log("Navigerer til paymentconfirmation fra PaymentPage...");
     router.push("/paymentconfirmation");
   };
 

@@ -4,8 +4,6 @@
 import { getEvent, getArtworkByEventID } from "@/lib/api";
 
 export async function filterEvents(prevState, filters) {
-  console.log("DEBUG_FILTER_EVENTS_ACTION: Modtagne filtre:", filters);
-
   try {
     const eventListRaw = await getEvent();
     const allEventsWithArtwork = await Promise.all(
@@ -54,11 +52,6 @@ export async function filterEvents(prevState, filters) {
         (event) => event.locationId?.toString() === selectedLocationId
       );
     }
-
-    console.log(
-      "DEBUG_FILTER_EVENTS_ACTION: Antal filtrerede events:",
-      filteredData.length
-    );
 
     return {
       active: filters,

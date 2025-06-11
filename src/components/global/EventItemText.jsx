@@ -71,7 +71,6 @@ const EventItemText = ({
   );
 
   const handleDelete = async () => {
-    console.log(`[EventItemText] Sletter event med ID: ${id}`);
     try {
       const response = await fetch(
         `https://ema-async-exhibit-server.onrender.com/events/${id}`,
@@ -173,7 +172,6 @@ const EventItemText = ({
               text="Rediger"
               onClick={() => {
                 router.push(`/create_edit?eventId=${id}`);
-                console.log("EventItemText", id);
               }}
             />
             <AlertDialog open={open} onOpenChange={setOpen}>
@@ -191,9 +189,6 @@ const EventItemText = ({
                 <AlertDialogFooter className="sm:justify-end">
                   <AlertDialogCancel
                     onClick={() => {
-                      console.log(
-                        "[EventItemText] 'Annuller slet' knap klikket"
-                      );
                       setOpen(false);
                     }}
                   >

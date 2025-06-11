@@ -31,7 +31,6 @@ const OpacityBoxSingleview = ({ eventId, content }) => {
   }, [eventId]);
 
   const handleImageClick = async (imageId) => {
-    console.log(`Billede klikket med ID: ${imageId}`);
     setImageData({ description: `Beskrivelse for billede ${imageId}` });
   };
 

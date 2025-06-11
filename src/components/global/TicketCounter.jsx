@@ -112,11 +112,6 @@ const TicketCounter = ({
       bookedTickets: numericBookedTickets,
     });
 
-    console.log("DEBUG TicketCounter: Data sendes til kurven:", {
-      ...eventDetails,
-      quantity: currentTicketQuantity,
-    });
-
     // Naviger til betalingssiden
     router.push(`/paymentpage`); // Next.js router.push without query params
   }, [
