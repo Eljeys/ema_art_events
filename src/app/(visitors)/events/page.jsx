@@ -43,7 +43,7 @@ export default async function Events() {
         );
         artImgsData = artImgsData.filter((img) => img !== null); // Filtrer eventuelle null-værdier fra
       }
-      // console.log(`Events Page (Server): Event ID ${event.id} har artImgs:`, artImgsData.length); // Fjern denne log
+
       return {
         ...event,
         artImgs: artImgsData, // <- Send det samlede array af billeddata

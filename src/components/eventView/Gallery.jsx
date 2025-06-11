@@ -13,8 +13,6 @@ const Gallery = ({ galleryData }) => {
   const pathname = usePathname();
   const scrollContainerRef = useRef(null);
 
-  console.log("Gallery component received galleryData:", galleryData);
-
   const handleThumbnailClick = (artworkIdToSet) => {
     const newSearchParams = new URLSearchParams(searchParams.toString());
     newSearchParams.set("backgroundArtworkId", artworkIdToSet);

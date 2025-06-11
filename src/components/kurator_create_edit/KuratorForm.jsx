@@ -46,21 +46,6 @@ const KuratorForm = ({
   filterCategories,
   prevSelectedArtworkDetails,
 }) => {
-  console.log("KuratorForm - prevData ved initialisering:", prevData);
-  console.log("KuratorForm - prevData?.artworkIds:", prevData?.artworkIds);
-  console.log(
-    "KuratorForm - initialImages prop (fra page.jsx):",
-    initialImages
-  );
-  console.log(
-    "KuratorForm - filterCategories prop (fra page.jsx):",
-    filterCategories
-  );
-  console.log(
-    "KuratorForm - prevSelectedArtworkDetails prop (fra page.jsx):",
-    prevSelectedArtworkDetails
-  );
-
   const form = useForm({
     defaultValues: {
       title: prevData?.title || "",
@@ -78,11 +63,6 @@ const KuratorForm = ({
 
   const [selectedArtworkDetails, setSelectedArtworkDetails] = useState(
     prevSelectedArtworkDetails || []
-  );
-
-  console.log(
-    "KuratorForm - selectedImages initialiseret til:",
-    selectedImages
   );
 
   const [filterState, formAction, isFiltering] = useActionState(filterData, {
@@ -188,8 +168,6 @@ const KuratorForm = ({
       description: data.description,
       artworkIds: selectedImages,
     };
-
-    console.log("Payload, der sendes til API:", payload);
 
     try {
       let response;
