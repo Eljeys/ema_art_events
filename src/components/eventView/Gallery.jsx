@@ -1,8 +1,9 @@
+// src/components/eventView/Gallery.jsx
 "use client";
 import { useRef } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import Placeholder from "@/app/assets/img/placeholder.png";
+import Placeholder from "@/app/assets/img/placeholder.png"; // Importér Placeholder
 
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 
@@ -18,7 +19,7 @@ const Gallery = ({ galleryData }) => {
     const newSearchParams = new URLSearchParams(searchParams.toString());
     newSearchParams.set("backgroundArtworkId", artworkIdToSet);
 
-    newSearchParams.set("showArtworkDetails", "true");
+    newSearchParams.set("showArtworkDetails", "true"); // Er denne stadig nødvendig?
 
     router.push(`${pathname}?${newSearchParams.toString()}`, {
       scroll: false,
@@ -77,7 +78,8 @@ const Gallery = ({ galleryData }) => {
             }}
           >
             {galleryData.map((artwork, index) => {
-              const borderColor = artwork.suggested_bg_color?.[0] || "#000000";
+              // Sørg for at borderColor er en enkelt streng, hvis den kommer som array
+              const borderColor = artwork.suggested_bg_color || "#000000"; // suggested_bg_color er allerede string i EventView
 
               return (
                 <button
@@ -92,11 +94,11 @@ const Gallery = ({ galleryData }) => {
                   style={{ borderColor: borderColor }}
                 >
                   <Image
-                    src={artwork.thumbnail || Placeholder.src}
+                    src={artwork.thumbnail || Placeholder.src} // <-- Retten ligger her!
                     alt={`Miniature ${artwork.id || index + 1}`}
                     fill
-                    objectFit="cover"
                     sizes="80px"
+                    style={{ objectFit: "cover" }} // Brug style-prop for object-fit
                   />
                 </button>
               );

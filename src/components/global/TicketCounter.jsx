@@ -1,3 +1,4 @@
+// src/components/global/TicketCounter.jsx
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -11,14 +12,14 @@ const TicketCounter = ({
   totalTickets,
   bookedTickets,
   pricePerTicket,
-  eventDetails,
+  eventDetails, // <--- Denne skal vi arbejde med
 }) => {
   const router = useRouter();
   const {
     items,
     incrementTicketQuantity,
     decrementTicketQuantity,
-    setEventInCart,
+    setEventInCart, // <--- Denne bruges til at gemme eventet
   } = useCartStore();
 
   const numericTotalTickets = parseFloat(totalTickets) || 0;
@@ -62,9 +63,11 @@ const TicketCounter = ({
       return;
     }
 
+    // Ved inkrement: Opdater eventet i kurven
+    // Sørg for at sende HELE eventDetails-objektet
     if (!currentEventInCart || currentEventInCart.quantity === 0) {
       setEventInCart({
-        ...eventDetails,
+        ...eventDetails, // Sørg for at eventDetails indeholder artImgs fra EventView
         quantity: Math.max(1, currentTicketQuantity + 1),
         totalTickets: numericTotalTickets,
         bookedTickets: numericBookedTickets,
@@ -99,18 +102,27 @@ const TicketCounter = ({
       return;
     }
 
+    // VIGTIGSTE RETTELSE ER HER:
+    // Sørg for at setEventInCart modtager eventDetails som en del af event-objektet,
+    // og tilføj den aktuelle mængde billetter.
     setEventInCart({
-      ...eventDetails,
+      ...eventDetails, // Dette objekt skal indeholde artImgs fra EventView
       quantity: currentTicketQuantity,
       totalTickets: numericTotalTickets,
       bookedTickets: numericBookedTickets,
     });
 
-    router.push(`/paymentpage`);
+    console.log("DEBUG TicketCounter: Data sendes til kurven:", {
+      ...eventDetails,
+      quantity: currentTicketQuantity,
+    });
+
+    // Naviger til betalingssiden
+    router.push(`/paymentpage`); // Next.js router.push without query params
   }, [
     eventId,
     currentTicketQuantity,
-    eventDetails,
+    eventDetails, // Inkluder eventDetails i useCallback afhængigheder
     setEventInCart,
     router,
     isSoldOut,
