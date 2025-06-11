@@ -17,7 +17,7 @@ export default async function Dashboard() {
   const eventsDates = await getEventDates();
   const eventsLocations = await getEventLocations();
   const categories = await getSMKFilterCat(); // Henter SMK kategorier - hvis relevant for andre UI-elementer her
-
+  console.log("dashboard: ", eventListRaw);
   // Berig alle events med kunstværksdata på serveren
   // Dette sker kun én gang, når siden indlæses, og de berigede events sendes til klienten.
   const eventListWithArtwork = await Promise.all(
