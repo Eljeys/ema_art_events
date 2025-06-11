@@ -8,7 +8,7 @@ const OpacityTextBox = ({ title, content, variant, className }) => {
         className
           ? `${cardVariants({
               variant: "opacity",
-            })} ${className} h-[15rem] flex-col w-[15rem]`
+            })} ${className} h-fit flex-col w-[15rem]`
           : `${cardVariants({
               variant: "opacity",
             })}  flex-col w-[15rem]`
@@ -16,7 +16,7 @@ const OpacityTextBox = ({ title, content, variant, className }) => {
     >
       <CardTitle>{title}</CardTitle>
 
-      <CardContent className="whitespace-pre-wrap flex-grow  h-fit mb-4">
+      <CardContent className="whitespace-pre-wrap flex-grow h-fit mb-4">
         {content}
       </CardContent>
     </Card>

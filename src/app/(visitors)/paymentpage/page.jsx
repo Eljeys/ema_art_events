@@ -1,3 +1,4 @@
+// app/paymentpage/page.jsx
 "use client";
 
 import Step from "@/components/kurator_create_edit/Step";
@@ -24,20 +25,17 @@ export default function PaymentPage() {
   }, [items, router]);
 
   const handleConfirmPayment = () => {
-    console.log("Navigerer til paymentconfirmation fra PaymentPage...");
     router.push("/paymentconfirmation");
   };
 
   const opacityTextBoxContent = selectedEventDetails
-    ? `Event: ${selectedEventDetails.title}\nDato: ${
-        selectedEventDetails.date || "N/A"
-      }\nSted: ${selectedEventDetails.location?.name || "N/A"}, ${
+    ? `Event: ${selectedEventDetails.title}\n\n` + // Tilføjet \n
+      `Dato: ${selectedEventDetails.date || "N/A"}\n\n` + // Tilføjet \n
+      `Sted: ${selectedEventDetails.location?.name || "N/A"}, ${
         selectedEventDetails.location?.address || "N/A"
-      }\nAntal billetter: ${selectedEventDetails.quantity}\nPris pr. billet: ${
-        selectedEventDetails.pricePerTicket
-      } DKK\nTotalpris: ${
-        selectedEventDetails.quantity * selectedEventDetails.pricePerTicket
-      } DKK`
+      }\n\n` + // Tilføjet \n
+      `Antal billetter: ${selectedEventDetails.quantity}\n\n` + // Tilføjet \n
+      `Pris pr. billet: ${selectedEventDetails.pricePerTicket} DKK` // Fjern `\n` her, da det er den sidste linje
     : "Indlæser eventdetaljer eller ingen events valgt...";
 
   const mockBackgroundColor = "#401F0C";
@@ -52,16 +50,17 @@ export default function PaymentPage() {
             <Step number="1" text="Dine informationer" className="mb-4" />
 
             <PersonalForm
-              className=""
+              className="mt-4"
               onPaymentConfirmed={handleConfirmPayment}
+              selectedEventDetails={selectedEventDetails}
             />
           </div>
 
           <aside className="md:w-1/3">
             <OpacityTextBox
-              title="Din Ordreoversigt"
+              title="Din ordreoversigt"
               content={opacityTextBoxContent}
-              className="h-[15rem] flex-col w-[15rem]"
+              className="h-[15rem] flex-col w-[15rem] leading-relaxed" // <--- TILFØJET: leading-relaxed
             />
           </aside>
         </div>

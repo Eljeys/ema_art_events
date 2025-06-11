@@ -1,7 +1,11 @@
+// src/app/eventView/page.jsx (EventView.jsx)
+// Dette er en Server Komponent
+
 import OpacityTextBox from "@/components/global/OpacityTextBox";
-import TicketCounterForEventView from "@/components/global/TicketCounter";
+import TicketCounter from "@/components/global/TicketCounter";
 import { getEventId, getArtworkByEventID } from "@/lib/api";
-import Placeholder from "@/app/assets/img/placeholder.png";
+import Placeholder from "@/app/assets/img/placeholder.png"; // Importér Placeholder
+import Gallery from "@/components/eventView/Gallery";
 
 export default async function EventView({ params, searchParams }) {
   const { id } = await params;
@@ -22,10 +26,14 @@ export default async function EventView({ params, searchParams }) {
     allArtworkDetails = await Promise.all(
       dataeventid.artworkIds.map(async (artworkId) => {
         const artwork = await getArtworkByEventID(artworkId);
+
         return {
           id: artworkId,
-          thumbnail: artwork?.image_thumbnail || Placeholder.src,
-          suggested_bg_color: artwork?.suggested_bg_color || ["#f0f0f0"],
+          // BRUG NU artwork?.image_thumbnail for imageUrl, da image_native er en download-URL
+          imageUrl: artwork?.image_thumbnail || Placeholder.src, // <--- ÆNDRET HER
+          // thumbnail-feltet kan stadig være artwork?.image_thumbnail, men den bruges i Gallery
+          thumbnail: artwork?.image_thumbnail,
+          suggested_bg_color: artwork?.suggested_bg_color?.[0] || "#f0f0f0", // Sikrer, at det er en enkelt farve
           title: artwork?.titles?.[0]?.title || "Ukendt Titel",
         };
       })
@@ -57,22 +65,22 @@ export default async function EventView({ params, searchParams }) {
     date: dataeventid.date,
     location: dataeventid.location,
     pricePerTicket: dataeventid.pricePerTicket || 45,
-    artImg: currentArtworkForBackground,
     description: dataeventid.description,
     time: dataeventid.time,
     totalTickets: dataeventid.location?.maxGuests,
     bookedTickets: dataeventid.bookedTickets,
+    artImgs: allArtworkDetails, // Denne array indeholder nu thumbnail som imageUrl
   };
 
   return (
     <div
       className="event-view-background w-full h-screen overflow-hidden"
       style={{
-        backgroundImage: currentArtworkForBackground?.thumbnail
-          ? `url(${currentArtworkForBackground.thumbnail})`
+        backgroundImage: currentArtworkForBackground?.imageUrl
+          ? `url(${currentArtworkForBackground.imageUrl})`
           : "none",
-        backgroundColor: currentArtworkForBackground?.suggested_bg_color?.[0]
-          ? currentArtworkForBackground.suggested_bg_color[0]
+        backgroundColor: currentArtworkForBackground?.suggested_bg_color
+          ? currentArtworkForBackground.suggested_bg_color
           : "#f0f0f0",
         backgroundSize: "cover",
         backgroundPosition: "center",
@@ -90,7 +98,7 @@ export default async function EventView({ params, searchParams }) {
             maxContentHeightClasses="overflow-y-auto"
           />
 
-          <TicketCounterForEventView
+          <TicketCounter
             eventId={dataeventid.id}
             totalTickets={dataeventid.location?.maxGuests}
             bookedTickets={dataeventid.bookedTickets}
@@ -99,7 +107,9 @@ export default async function EventView({ params, searchParams }) {
           />
         </section>
 
-        <section className="col-start-1 md:col-start-2 row-start-3 justify-self-center md:justify-self-end self-end mb-4 mr-4"></section>
+        <section className="col-start-1 md:col-start-2 row-start-3 justify-self-center md:justify-self-end self-end mb-4 mr-4">
+          <Gallery galleryData={allArtworkDetails} />
+        </section>
       </main>
     </div>
   );

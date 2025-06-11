@@ -12,10 +12,6 @@ const useCartStore = create((set, get) => ({
       const booked = parseFloat(eventDetails.bookedTickets) || 0;
       const availableTickets = total - booked;
 
-      console.log(
-        `[ticketStore] Tilgængelige billetter for event ${eventDetails.title}: ${availableTickets}`
-      );
-
       let validatedQuantity = Math.max(1, eventDetails.quantity || 1);
 
       // **NY LOGIK HER: Juster den ønskede mængde ned, hvis den overstiger tilgængelige billetter**
@@ -70,10 +66,6 @@ const useCartStore = create((set, get) => ({
         ];
       }
 
-      console.log(
-        "[ticketStore] setEventInCart: Setting event",
-        updatedItems[0]
-      );
       return { items: updatedItems };
     }),
 

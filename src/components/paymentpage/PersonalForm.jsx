@@ -1,3 +1,4 @@
+// components/paymentpage/PersonalForm.jsx
 "use client";
 import { FormProvider } from "react-hook-form";
 import { useForm } from "react-hook-form";
@@ -12,7 +13,12 @@ import {
 import { Input } from "@/components/ui/input";
 import CustomButton from "@/components/global/CustomButton";
 
-const PersonalForm = ({ onPaymentConfirmed, className }) => {
+// Modtager selectedEventDetails som en prop
+const PersonalForm = ({
+  onPaymentConfirmed,
+  className,
+  selectedEventDetails,
+}) => {
   const form = useForm({
     defaultValues: {
       firstName: "",
@@ -22,27 +28,25 @@ const PersonalForm = ({ onPaymentConfirmed, className }) => {
       city: "",
       zipCode: "",
     },
-
     mode: "onBlur",
   });
 
   const onSubmit = (data) => {
-    console.log("[PersonalForm] onSubmit kaldt. Formular data:", data);
-
     if (Object.keys(form.formState.errors).length > 0) {
-      console.log(
-        "[PersonalForm] Formular har valideringsfejl. Kontroller FormMessages under felterne."
-      );
       return;
     }
 
     if (onPaymentConfirmed) {
-      console.log("[PersonalForm] Kalder onPaymentConfirmed prop.");
       onPaymentConfirmed();
     } else {
       console.warn("[PersonalForm] onPaymentConfirmed prop er ikke defineret!");
     }
   };
+
+  // Beregn totalprisen her
+  const totalPrice = selectedEventDetails
+    ? selectedEventDetails.quantity * selectedEventDetails.pricePerTicket
+    : 0; // Standardværdi 0, hvis selectedEventDetails endnu ikke er indlæst
 
   return (
     <FormProvider {...form}>
@@ -155,7 +159,14 @@ const PersonalForm = ({ onPaymentConfirmed, className }) => {
             )}
           />
         </div>
-        <CustomButton type="submit" text="Gå til betaling"></CustomButton>
+
+        {selectedEventDetails && (
+          <h3 className="text-left text-lg font-bold">
+            Totalpris: {totalPrice} DKK
+          </h3>
+        )}
+
+        <CustomButton type="submit" text="Book billetter"></CustomButton>
       </form>
     </FormProvider>
   );
