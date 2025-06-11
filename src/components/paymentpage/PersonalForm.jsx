@@ -172,7 +172,7 @@ const PersonalForm = ({
           </h3>
         )}
 
-        <CustomButton type="submit" text="Gå til betaling"></CustomButton>
+        <CustomButton type="submit" text="Book billetter"></CustomButton>
       </form>
     </FormProvider>
   );

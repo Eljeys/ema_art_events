@@ -138,6 +138,8 @@ export async function getSMKFilterCat() {
 
 // --------------------------------   Til Event Create, Edit og Delete   --------------------------------------------//
 
+// VIGTIGT: Disse funktioner er ændret til at returnere HELE response-objektet,
+// så vi kan tjekke 'response.ok' og derefter parse JSON i komponenten.
 export async function createEvent(indhold) {
   const response = await fetch(
     "https://ema-async-exhibit-server.onrender.com/events",
@@ -149,7 +151,7 @@ export async function createEvent(indhold) {
       body: JSON.stringify(indhold),
     }
   );
-  return response.json();
+  return response; // Returnerer nu hele Response-objektet
 }
 
 export async function updateEvent(id, eventData) {
@@ -163,8 +165,7 @@ export async function updateEvent(id, eventData) {
       body: JSON.stringify(eventData),
     }
   );
-
-  return response.json();
+  return response; // Returnerer nu hele Response-objektet
 }
 export async function deleteEvent(id, eventData) {
   const response = await fetch(
@@ -178,5 +179,5 @@ export async function deleteEvent(id, eventData) {
     }
   );
 
-  return response.json();
+  return response.json(); // Denne kan forblive som den er, hvis du kun bruger den til at få bekræftelse
 }

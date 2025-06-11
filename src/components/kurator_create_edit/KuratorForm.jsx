@@ -1,14 +1,13 @@
 "use client";
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import { useForm } from "react-hook-form";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useActionState } from "react";
 
 // Shadcn UI Components
-
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -36,6 +35,9 @@ import Placeholder from "../../app/assets/img/placeholder.png";
 import { filterData } from "@/components/global/filter/actions";
 import Filter from "@/components/global/filter/Filter";
 import CustomButton from "../global/CustomButton";
+
+// Importér de ændrede API-kald
+import { createEvent, updateEvent } from "@/lib/api";
 
 const KuratorForm = ({
   images: initialImages,
@@ -93,9 +95,16 @@ const KuratorForm = ({
 
   const displayedImages = filterState.data;
 
+  // State til fejl- og succesmeddelelser - erstatter alerts
+  const [errorMessage, setErrorMessage] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+
+  // Reference til formularen
+  const formRef = useRef(null);
+
   // PAGINERING STATES OG LOGIK
   const [currentPage, setCurrentPage] = useState(1);
-  const imagesPerPage = 15; // <-- Antal billeder per side
+  const imagesPerPage = 15; // Antal billeder per side
 
   // Filtrer først valgte billeder fra displayedImages
   const filteredDisplayedImages = displayedImages.filter(
@@ -137,6 +146,7 @@ const KuratorForm = ({
           selectedLocation.maxArtworks &&
           prevSelectedImages.length >= selectedLocation.maxArtworks
         ) {
+          // Beholder alert her, da det er en frontend validering for max billeder
           alert(
             `Du kan kun vælge op til ${selectedLocation.maxArtworks} billeder for denne lokation.`
           );
@@ -167,6 +177,10 @@ const KuratorForm = ({
   };
 
   const onSubmit = async (data) => {
+    // Nulstil beskeder før et nyt submit forsøg
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
     const payload = {
       title: data.title,
       date: data.date,
@@ -181,28 +195,20 @@ const KuratorForm = ({
       let response;
       if (prevData && prevData.id) {
         console.log(
-          "Forsøger at opdatere event (PATCH) via Next.js API-rute:",
-          `/api/events/${prevData.id}`,
+          "Forsøger at opdatere event (PATCH) via lib/api.js's updateEvent funktion:",
+          `/events/${prevData.id}`,
           "med payload:",
           payload
         );
-        response = await fetch(`/api/events/${prevData.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+        response = await updateEvent(prevData.id, payload);
       } else {
         console.log(
-          "Forsøger at oprette event (POST) via Next.js API-rute:",
-          `/api/events`,
+          "Forsøger at oprette event (POST) via lib/api.js's createEvent funktion:",
+          `/events`,
           "med payload:",
           payload
         );
-        response = await fetch("/api/events", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+        response = await createEvent(payload);
       }
 
       if (response.ok) {
@@ -211,26 +217,52 @@ const KuratorForm = ({
           `Event ${prevData ? "opdateret" : "oprettet"} succesfuldt:`,
           result
         );
-        alert(`Eventet er ${prevData ? "opdateret" : "oprettet"} succesfuldt!`);
-        router.push("/dashboard");
+        setSuccessMessage(
+          `Eventet er ${prevData ? "opdateret" : "oprettet"} succesfuldt!`
+        );
+
+        // NYT: Scroll til toppen og forsink redirection ved succes
+        if (formRef.current) {
+          formRef.current.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }
+        setTimeout(() => {
+          router.push("/dashboard");
+        }, 3000); // Forsink redirection i 3 sekunder (3000 ms)
       } else {
         const errorData = await response.json();
-        console.error(
-          "Fejl ved event handling via Next.js API-rute:",
-          errorData
-        );
-        alert(
-          `Der opstod en fejl ved ${prevData ? "opdatering" : "oprettelse"} af event: ${errorData.message || "Ukendt fejl"}. Tjek konsollen for detaljer.`
-        );
+        console.error("Fejl ved event handling via API-rute:", errorData);
+        // Brug setErrorMessage til at vise fejlen på skærmen
+        let message = "Ukendt fejl.";
+        if (
+          errorData.message &&
+          errorData.message.includes("conflict: another event already exists")
+        ) {
+          message = "Der findes allerede et event på denne dato og lokation."; // Kortere tekst
+        } else if (errorData.message) {
+          message = errorData.message;
+        }
+        setErrorMessage(`Fejl: ${message}`);
+        // Scroll til toppen af formularen ved fejl
+        if (formRef.current) {
+          formRef.current.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }
       }
     } catch (error) {
-      console.error(
-        "Netværksfejl ved submit af event til Next.js API-rute:",
-        error
+      console.error("Netværksfejl ved submit af event til API-rute:", error);
+      // Brug setErrorMessage til at vise netværksfejlen på skærmen
+      setErrorMessage(
+        "Netværksfejl: Kunne ikke oprette/opdatere event. Tjek din internetforbindelse." // Kortere tekst
       );
-      alert(
-        "Der opstod en netværksfejl ved oprettelse/opdatering af event. Tjek konsollen for detaljer."
-      );
+      // Scroll til toppen af formularen ved fejl
+      if (formRef.current) {
+        formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     }
   };
 
@@ -247,7 +279,57 @@ const KuratorForm = ({
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 p-4">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="space-y-8 p-4"
+        ref={formRef}
+      >
+        {errorMessage && (
+          <div
+            className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+            role="alert"
+          >
+            <span className="block sm:inline">{errorMessage}</span>
+            <span
+              className="absolute top-0 bottom-0 right-0 px-4 py-3 cursor-pointer"
+              onClick={() => setErrorMessage(null)} // Tillader at lukke beskeden
+            >
+              <svg
+                className="fill-current h-6 w-6 text-red-500"
+                role="button"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+              >
+                <title>Close</title>
+                <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.103l-2.651 3.746a1.2 1.2 0 0 1-1.697-1.697l3.746-2.651-3.746-2.651a1.2 1.2 0 0 1 1.697-1.697L10 8.897l2.651-3.746a1.2 1.2 0 0 1 1.697 1.697L11.103 10l3.746 2.651a1.2 1.2 0 0 1 0 1.698z" />
+              </svg>
+            </span>
+          </div>
+        )}
+        {/* Vis succesmeddelelse her med Tailwind CSS */}
+        {successMessage && (
+          <div
+            className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative"
+            role="alert"
+          >
+            <strong className="font-bold">Succes! </strong>
+            <span className="block sm:inline">{successMessage}</span>
+            <span
+              className="absolute top-0 bottom-0 right-0 px-4 py-3 cursor-pointer"
+              onClick={() => setSuccessMessage(null)}
+            >
+              <svg
+                className="fill-current h-6 w-6 text-green-500"
+                role="button"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+              >
+                <title>Close</title>
+                <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.103l-2.651 3.746a1.2 1.2 0 0 1-1.697-1.697l3.746-2.651-3.746-2.651a1.2 1.2 0 0 1 1.697-1.697L10 8.897l2.651-3.746a1.2 1.2 0 0 1 1.697 1.697L11.103 10l3.746 2.651a1.2 1.2 0 0 1 0 1.698z" />
+              </svg>
+            </span>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4">
           <FormField
             control={control}
@@ -309,7 +391,6 @@ const KuratorForm = ({
             )}
           />
         </div>
-
         <FormField
           control={control}
           name="description"
@@ -324,7 +405,6 @@ const KuratorForm = ({
             </FormItem>
           )}
         />
-
         {/* Valgte Billeder Sektion - JUSTERET GRID KLASSER OG SIZES HER */}
         <div className="space-y-4 border p-4 rounded-lg">
           <Label className="text-lg font-semibold">Valgte Billeder</Label>
@@ -340,8 +420,8 @@ const KuratorForm = ({
                     src={img.image_thumbnail || img.image_native || Placeholder}
                     alt={img.titles?.[0]?.title || "Valgt billede"}
                     fill
+                    sizes="(max-width: 768px) 100px, (max-width: 1200px) 150px, 200px"
                     className="object-cover transition-transform duration-300 group-hover:scale-105 group-hover:brightness-50"
-                    // title={img.titles?.[0]?.title || "Valgt billede"} // Fjernet title herfra
                   />
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
                     <span className="text-white text-2xl">✓</span>{" "}
@@ -359,7 +439,6 @@ const KuratorForm = ({
             <p className="text-gray-500">Ingen billeder er valgt endnu.</p>
           )}
         </div>
-
         {/* GALLERI SECTION MED FILTER OG PAGINERING */}
         <div className="space-y-4">
           <Label className="text-lg font-semibold">
@@ -402,8 +481,8 @@ const KuratorForm = ({
                           }
                           alt={img.titles?.[0]?.title || "SMK billede"}
                           fill
+                          sizes="(max-width: 768px) 100px, (max-width: 1200px) 150px, 200px"
                           className="object-cover transition-transform duration-300 group-hover:scale-105 group-hover:brightness-50"
-                          // title={img.titles?.[0]?.title || "SMK billede"} // Fjernet title herfra
                         />
                         {isSelected && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
