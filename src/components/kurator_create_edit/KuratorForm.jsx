@@ -172,29 +172,14 @@ const KuratorForm = ({
     try {
       let response;
       if (prevData && prevData.id) {
-        console.log(
-          "Forsøger at opdatere event (PATCH) via lib/api.js's updateEvent funktion:",
-          `/events/${prevData.id}`,
-          "med payload:",
-          payload
-        );
         response = await updateEvent(prevData.id, payload);
       } else {
-        console.log(
-          "Forsøger at oprette event (POST) via lib/api.js's createEvent funktion:",
-          `/events`,
-          "med payload:",
-          payload
-        );
         response = await createEvent(payload);
       }
 
       if (response.ok) {
         const result = await response.json();
-        console.log(
-          `Event ${prevData ? "opdateret" : "oprettet"} succesfuldt:`,
-          result
-        );
+
         setSuccessMessage(
           `Eventet er ${prevData ? "opdateret" : "oprettet"} succesfuldt!`
         );
