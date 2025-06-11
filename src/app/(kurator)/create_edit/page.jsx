@@ -15,7 +15,7 @@ export default async function CreateEditEventPage({ searchParams }) {
 
   const events = await getEvent(); // Henter alle events
   const locations = await getEventLocations(); // Henter lokationer
-  const eventId = searchParams.eventId; // Fanger eventId fra URL'en for redigering
+  const eventId = await searchParams; // Fanger eventId fra URL'en for redigering
   let prevData = null;
   let prevSelectedArtworkDetails = []; // <-- NY: Initialiser dette array
 
