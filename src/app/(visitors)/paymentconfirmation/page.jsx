@@ -26,14 +26,14 @@ export default function PaymentConfirmation() {
   const receiptContent = confirmedEventDetails
     ? `Event: ${confirmedEventDetails.title}
 Antal billetter: ${confirmedEventDetails.quantity}
-Totalpris: ${confirmedEventDetails.quantity * confirmedEventDetails.pricePerTicket} DKK`
+Totalpris: ${
+        confirmedEventDetails.quantity * confirmedEventDetails.pricePerTicket
+      } DKK`
     : "Ingen købsdetaljer fundet.";
 
   const handleGoHome = () => {
     clearCart();
-    console.log(
-      "[PaymentConfirmation] Kurv ryddet ved 'Tilbage til forsiden' klik."
-    );
+
     router.push("/");
   };
 

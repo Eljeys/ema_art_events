@@ -26,12 +26,7 @@ export default async function EventView({ params, searchParams }) {
     allArtworkDetails = await Promise.all(
       dataeventid.artworkIds.map(async (artworkId) => {
         const artwork = await getArtworkByEventID(artworkId);
-        console.log(
-          `[EventView] Artwork ID: ${artworkId}, image_native: ${artwork?.image_native}`
-        );
-        console.log(
-          `[EventView] Artwork ID: ${artworkId}, image_thumbnail: ${artwork?.image_thumbnail}`
-        ); // Tilføjet log for thumbnail
+
         return {
           id: artworkId,
           // BRUG NU artwork?.image_thumbnail for imageUrl, da image_native er en download-URL

@@ -23,23 +23,6 @@ const EventItem = (dataevent) => {
   // Vælg det første billede fra arrayet, hvis det findes
   const primaryArtImg = artImgs && artImgs.length > 0 ? artImgs[0] : null;
 
-  // Loggene kan beholdes under udvikling, men bør fjernes i produktion
-  console.log("EventItem modtog HELE dataevent (KLIENT):", dataevent);
-  console.log("EventItem - artImgs (KLIENT):", artImgs);
-  console.log("EventItem - primaryArtImg (KLIENT):", primaryArtImg);
-  console.log(
-    "EventItem - image_thumbnail (KLIENT):",
-    primaryArtImg?.image_thumbnail
-  );
-  console.log(
-    "EventItem - image_native (KLIENT):",
-    primaryArtImg?.image_native
-  );
-  console.log(
-    "EventItem - suggested_bg_color (KLIENT):",
-    primaryArtImg?.suggested_bg_color
-  );
-
   const router = useRouter(); // Kan eventuelt fjernes, hvis den ikke bruges til andet her
 
   // Fjern al logik for at tilføje til kurv, da det ikke er EventItems ansvar

@@ -46,21 +46,6 @@ const KuratorForm = ({
   filterCategories,
   prevSelectedArtworkDetails,
 }) => {
-  console.log("KuratorForm - prevData ved initialisering:", prevData);
-  console.log("KuratorForm - prevData?.artworkIds:", prevData?.artworkIds);
-  console.log(
-    "KuratorForm - initialImages prop (fra page.jsx):",
-    initialImages
-  );
-  console.log(
-    "KuratorForm - filterCategories prop (fra page.jsx):",
-    filterCategories
-  );
-  console.log(
-    "KuratorForm - prevSelectedArtworkDetails prop (fra page.jsx):",
-    prevSelectedArtworkDetails
-  );
-
   const form = useForm({
     defaultValues: {
       title: prevData?.title || "",
@@ -78,11 +63,6 @@ const KuratorForm = ({
 
   const [selectedArtworkDetails, setSelectedArtworkDetails] = useState(
     prevSelectedArtworkDetails || []
-  );
-
-  console.log(
-    "KuratorForm - selectedImages initialiseret til:",
-    selectedImages
   );
 
   const [filterState, formAction, isFiltering] = useActionState(filterData, {
@@ -189,34 +169,17 @@ const KuratorForm = ({
       artworkIds: selectedImages,
     };
 
-    console.log("Payload, der sendes til API:", payload);
-
     try {
       let response;
       if (prevData && prevData.id) {
-        console.log(
-          "Forsøger at opdatere event (PATCH) via lib/api.js's updateEvent funktion:",
-          `/events/${prevData.id}`,
-          "med payload:",
-          payload
-        );
         response = await updateEvent(prevData.id, payload);
       } else {
-        console.log(
-          "Forsøger at oprette event (POST) via lib/api.js's createEvent funktion:",
-          `/events`,
-          "med payload:",
-          payload
-        );
         response = await createEvent(payload);
       }
 
       if (response.ok) {
         const result = await response.json();
-        console.log(
-          `Event ${prevData ? "opdateret" : "oprettet"} succesfuldt:`,
-          result
-        );
+
         setSuccessMessage(
           `Eventet er ${prevData ? "opdateret" : "oprettet"} succesfuldt!`
         );

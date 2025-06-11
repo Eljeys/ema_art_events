@@ -41,7 +41,7 @@ export default async function Dashboard() {
         );
         artImgsData = artImgsData.filter((img) => img !== null); // Filtrer eventuelle null-værdier fra
       }
-      // console.log(`Dashboard (Server): Event ID ${event.id} har artImgs:`, artImgsData.length); // Fjern denne log for at undgå overflødig output i produktion
+
       return {
         ...event,
         artImgs: artImgsData, // <- Send det samlede array af billeddata

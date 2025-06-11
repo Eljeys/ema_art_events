@@ -56,8 +56,6 @@ export async function getSMKImg(filters = []) {
   // Sæt et højt antal rækker (f.eks. 500 eller 1000) for at hente mange billeder
   const url = `https://api.smk.dk/api/v1/art/search?keys=*&offset=0&rows=500${filterString}&filters=[has_image:true]`; // <-- Rows sat til 500, og filterString tilføjet
 
-  console.log("DEBUG_API: Henter SMK-billeder med URL:", url);
-
   const datasSMK = await fetch(url, {
     headers: {
       "Content-Type": "application/json",

@@ -32,17 +32,11 @@ const PersonalForm = ({
   });
 
   const onSubmit = (data) => {
-    console.log("[PersonalForm] onSubmit kaldt. Formular data:", data);
-
     if (Object.keys(form.formState.errors).length > 0) {
-      console.log(
-        "[PersonalForm] Formular har valideringsfejl. Kontroller FormMessages under felterne."
-      );
       return;
     }
 
     if (onPaymentConfirmed) {
-      console.log("[PersonalForm] Kalder onPaymentConfirmed prop.");
       onPaymentConfirmed();
     } else {
       console.warn("[PersonalForm] onPaymentConfirmed prop er ikke defineret!");
